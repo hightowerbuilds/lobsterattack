@@ -27,7 +27,7 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Atkinson Hyperlegible", sans-serif;
   background:
     radial-gradient(circle at top left, rgba(15, 118, 110, 0.16), transparent 28%),
     radial-gradient(circle at top right, rgba(180, 83, 9, 0.16), transparent 24%),
@@ -70,6 +70,31 @@ ul {
   padding: 24px 0 56px;
 }
 
+html.lobster-attack-active,
+body.lobster-attack-active {
+  overflow: hidden;
+}
+
+body.lobster-attack-active {
+  background:
+    linear-gradient(180deg, rgba(1, 18, 32, 0.34), rgba(2, 20, 37, 0.58)),
+    url("/images/lobster-attack/coral-reef-red-sea.jpg") center center / cover no-repeat fixed;
+}
+
+body.lobster-attack-active::before {
+  display: none;
+}
+
+body.lobster-attack-active .app-shell {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  width: 100%;
+  max-width: none;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
 .site-header,
 .panel-head,
 .hero-actions,
@@ -90,6 +115,10 @@ ul {
   padding: 6px 2px 24px;
 }
 
+body.lobster-attack-active .site-header {
+  padding: 18px 18px 0;
+}
+
 .brand-mark {
   display: inline-flex;
   align-items: center;
@@ -102,7 +131,7 @@ ul {
 .signal-pill,
 .field span,
 .nav-link {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: "Atkinson Hyperlegible", sans-serif;
 }
 
 .brand-kicker,
@@ -132,6 +161,18 @@ ul {
   color: var(--ink);
   border-color: var(--line);
   background: rgba(255, 255, 255, 0.82);
+}
+
+body.lobster-attack-active .nav-link {
+  color: #dff7ff;
+  background: rgba(4, 24, 42, 0.58);
+  border-color: rgba(142, 241, 255, 0.22);
+}
+
+body.lobster-attack-active .nav-link-active {
+  color: #05233c;
+  border-color: rgba(142, 241, 255, 0.3);
+  background: linear-gradient(180deg, #86efac 0%, #22d3ee 100%);
 }
 
 .page-shell {
@@ -349,7 +390,7 @@ button:disabled {
   position: relative;
   z-index: 1;
   margin: 0;
-  font-family: "IBM Plex Mono", monospace;
+  font-family: "Atkinson Hyperlegible", sans-serif;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -403,7 +444,7 @@ button:disabled {
   justify-content: center;
   padding: 0 14px;
   border: 1px solid rgba(140, 98, 60, 0.45);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: "Atkinson Hyperlegible", sans-serif;
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -579,7 +620,7 @@ button:disabled {
   padding: 8px 14px;
   background: linear-gradient(180deg, #edf5ff 0%, #d6e8ff 100%);
   border-bottom: 1px solid #8cb2e8;
-  font-family: "IBM Plex Mono", monospace;
+  font-family: "Atkinson Hyperlegible", sans-serif;
   font-size: 0.64rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -596,7 +637,7 @@ button:disabled {
 }
 
 .portal-brand-kicker {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: "Atkinson Hyperlegible", sans-serif;
   font-size: 0.66rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -613,12 +654,12 @@ button:disabled {
 
 .portal-panel-label,
 .portal-module-tag {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: "Atkinson Hyperlegible", sans-serif;
 }
 
 .portal-panel-label,
 .portal-module-tag {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: "Atkinson Hyperlegible", sans-serif;
 }
 
 .portal-panel-label {
@@ -785,22 +826,55 @@ button:disabled {
 }
 
 .aquarium-page {
+  position: relative;
+  min-height: 0;
+  height: 100%;
   gap: 18px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 18px;
+  background: transparent;
+  box-shadow: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(142, 241, 255, 0.45) rgba(2, 20, 37, 0.3);
+}
+
+.aquarium-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.12) 0 2px, transparent 3px),
+    radial-gradient(circle at 72% 16%, rgba(255, 255, 255, 0.08) 0 3px, transparent 4px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 34%);
+  opacity: 0.8;
+  z-index: 0;
+}
+
+.aquarium-page > * {
+  position: relative;
+  z-index: 1;
 }
 
 .aquarium-hero {
   position: relative;
   display: grid;
-  grid-template-columns: 0.85fr 1.15fr;
+  grid-template-columns: 1fr;
   gap: 18px;
   padding: 22px;
   border: 1px solid rgba(139, 232, 255, 0.28);
   border-radius: 0;
   overflow: hidden;
   background:
-    radial-gradient(circle at top left, rgba(36, 211, 238, 0.18), transparent 24%),
-    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.2), transparent 30%),
-    linear-gradient(180deg, #03182d 0%, #06284b 40%, #04182a 100%);
+    radial-gradient(circle at top left, rgba(36, 211, 238, 0.14), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.16), transparent 30%),
+    linear-gradient(
+      180deg,
+      rgba(3, 24, 45, 0.7) 0%,
+      rgba(6, 40, 75, 0.62) 40%,
+      rgba(4, 24, 42, 0.72) 100%
+    );
   box-shadow: 0 28px 80px rgba(0, 19, 43, 0.35);
 }
 
@@ -827,14 +901,14 @@ button:disabled {
 }
 
 .aquarium-hero-copy {
-  align-self: center;
+  align-self: start;
 }
 
 .aquarium-kicker,
 .aquarium-stat-label,
 .aquarium-card-kicker {
   margin: 0;
-  font-family: "IBM Plex Mono", monospace;
+  font-family: "Atkinson Hyperlegible", sans-serif;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -843,11 +917,11 @@ button:disabled {
 
 .aquarium-hero h1 {
   margin-top: 8px;
-  max-width: 8ch;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(3rem, 8vw, 6rem);
-  line-height: 0.9;
-  letter-spacing: -0.06em;
+  max-width: none;
+  font-family: "Atkinson Hyperlegible", sans-serif;
+  font-size: 20px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
   color: #f1fbff;
   text-shadow: 0 6px 30px rgba(0, 0, 0, 0.3);
 }
@@ -876,7 +950,7 @@ button:disabled {
   padding: 0 14px;
   border-radius: 0;
   border: 1px solid rgba(142, 241, 255, 0.3);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: "Atkinson Hyperlegible", sans-serif;
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -890,19 +964,6 @@ button:disabled {
 .aquarium-button-secondary {
   color: #dff7ff;
   background: rgba(255, 255, 255, 0.08);
-}
-
-.aquarium-hero-media {
-  min-height: 420px;
-}
-
-.aquarium-main-photo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 0;
-  border: 1px solid rgba(197, 247, 255, 0.25);
-  box-shadow: 0 18px 60px rgba(0, 10, 28, 0.35);
 }
 
 .aquarium-stats-grid {
@@ -974,6 +1035,343 @@ button:disabled {
   line-height: 1.6;
 }
 
+.aquarium-board-shell {
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.concierge-shell {
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.concierge-sidebar-panel,
+.concierge-board-panel,
+.concierge-notes-stack,
+.concierge-form-grid,
+.concierge-steps {
+  display: grid;
+  gap: 16px;
+}
+
+.concierge-sidebar-panel {
+  align-content: start;
+}
+
+.concierge-board-panel {
+  min-width: 0;
+}
+
+.concierge-auth-card,
+.concierge-safety-card,
+.concierge-composer,
+.concierge-note-card,
+.concierge-empty {
+  border: 1px solid rgba(77, 57, 33, 0.16);
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.concierge-title {
+  margin-top: 8px;
+  font-family: "Atkinson Hyperlegible", sans-serif;
+  font-size: clamp(1.8rem, 4vw, 2.9rem);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+  color: #341d0c;
+}
+
+.concierge-copy,
+.concierge-meta,
+.concierge-note-body,
+.concierge-comment-body,
+.concierge-field span {
+  color: #674b33;
+}
+
+.concierge-copy,
+.concierge-note-body,
+.concierge-comment-body {
+  line-height: 1.6;
+}
+
+.concierge-copy {
+  margin-top: 14px;
+  font-size: 0.92rem;
+}
+
+.concierge-steps {
+  margin-top: 16px;
+}
+
+.concierge-step {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(103, 75, 51, 0.12);
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.concierge-step strong {
+  color: #3f2511;
+  font-size: 0.9rem;
+}
+
+.concierge-step span {
+  color: #6f533c;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.concierge-field {
+  display: grid;
+  gap: 8px;
+}
+
+.concierge-field span {
+  font-family: "Atkinson Hyperlegible", sans-serif;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.concierge-input,
+.concierge-textarea {
+  width: 100%;
+  border: 1px solid rgba(92, 63, 35, 0.24);
+  background: rgba(255, 252, 247, 0.96);
+  color: #21150c;
+  padding: 12px 14px;
+  font: inherit;
+}
+
+.concierge-input::placeholder,
+.concierge-textarea::placeholder {
+  color: #8f735c;
+}
+
+.concierge-input:focus,
+.concierge-textarea:focus {
+  outline: 2px solid rgba(15, 118, 110, 0.18);
+  border-color: rgba(15, 118, 110, 0.44);
+}
+
+.concierge-input:disabled,
+.concierge-textarea:disabled {
+  background: rgba(236, 229, 220, 0.82);
+}
+
+.concierge-textarea {
+  min-height: 156px;
+  resize: vertical;
+}
+
+.concierge-textarea-compact {
+  min-height: 110px;
+}
+
+.concierge-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.concierge-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border: 1px solid rgba(102, 69, 40, 0.32);
+  background: linear-gradient(180deg, #315e59 0%, #1f4540 100%);
+  color: #fff8ef;
+  cursor: pointer;
+}
+
+.concierge-button-secondary {
+  background: linear-gradient(180deg, #f6eee2 0%, #e7d6bf 100%);
+  color: #3d2714;
+}
+
+.concierge-button-ghost {
+  background: rgba(255, 255, 255, 0.4);
+  color: #3d2714;
+}
+
+.concierge-button-danger {
+  background: linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%);
+  color: #fff7f7;
+}
+
+.concierge-button-small {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 0.76rem;
+}
+
+.concierge-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.concierge-meta {
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.concierge-error {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(153, 27, 27, 0.18);
+  background: rgba(153, 27, 27, 0.08);
+  color: #7f1818;
+  font-size: 0.88rem;
+}
+
+.concierge-composer h2,
+.concierge-note-card h3 {
+  margin-top: 8px;
+  font-size: 1.45rem;
+  letter-spacing: -0.04em;
+  color: #2f1808;
+}
+
+.concierge-empty {
+  color: #674b33;
+}
+
+.concierge-note-card {
+  display: grid;
+  gap: 16px;
+}
+
+.concierge-note-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 14px;
+}
+
+.concierge-note-actions,
+.concierge-comment-head,
+.concierge-inline-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.concierge-note-actions,
+.concierge-comment-head {
+  align-items: start;
+  justify-content: space-between;
+}
+
+.concierge-note-actions {
+  flex-direction: column;
+}
+
+.concierge-inline-actions {
+  flex-wrap: wrap;
+}
+
+.concierge-note-body {
+  white-space: pre-wrap;
+}
+
+.concierge-comments {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.concierge-comment {
+  padding: 14px;
+  border: 1px solid rgba(103, 75, 51, 0.12);
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.concierge-comment-meta {
+  color: #7f644e;
+  font-family: "Atkinson Hyperlegible", sans-serif;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.concierge-comment-body {
+  margin-top: 8px;
+  white-space: pre-wrap;
+}
+
+body.lobster-attack-active .concierge-auth-card,
+body.lobster-attack-active .concierge-safety-card,
+body.lobster-attack-active .concierge-composer,
+body.lobster-attack-active .concierge-note-card,
+body.lobster-attack-active .concierge-empty,
+body.lobster-attack-active .concierge-comment,
+body.lobster-attack-active .concierge-step {
+  border-color: rgba(126, 224, 255, 0.18);
+  background: rgba(3, 22, 38, 0.34);
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+body.lobster-attack-active .concierge-title,
+body.lobster-attack-active .concierge-composer h2,
+body.lobster-attack-active .concierge-note-card h3,
+body.lobster-attack-active .concierge-step strong {
+  color: #eefcff;
+}
+
+body.lobster-attack-active .concierge-copy,
+body.lobster-attack-active .concierge-meta,
+body.lobster-attack-active .concierge-note-body,
+body.lobster-attack-active .concierge-comment-body,
+body.lobster-attack-active .concierge-field span,
+body.lobster-attack-active .concierge-step span,
+body.lobster-attack-active .flat-list li {
+  color: rgba(220, 242, 255, 0.84);
+}
+
+body.lobster-attack-active .section-label {
+  color: #8be8ff;
+}
+
+body.lobster-attack-active .concierge-input,
+body.lobster-attack-active .concierge-textarea {
+  border-color: rgba(126, 224, 255, 0.18);
+  background: rgba(2, 21, 38, 0.7);
+  color: #f2fbff;
+}
+
+body.lobster-attack-active .concierge-input::placeholder,
+body.lobster-attack-active .concierge-textarea::placeholder,
+body.lobster-attack-active .concierge-comment-meta {
+  color: rgba(165, 220, 235, 0.72);
+}
+
+body.lobster-attack-active .concierge-input:disabled,
+body.lobster-attack-active .concierge-textarea:disabled {
+  background: rgba(3, 17, 29, 0.62);
+}
+
+body.lobster-attack-active .concierge-button-secondary {
+  background: rgba(220, 242, 255, 0.12);
+  color: #e3faff;
+}
+
+body.lobster-attack-active .concierge-button-ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #dff7ff;
+}
+
 .field {
   display: grid;
   gap: 8px;
@@ -1011,7 +1409,7 @@ select {
   background: rgba(18, 22, 17, 0.94);
   color: #eef6ee;
   overflow: auto;
-  font-family: "IBM Plex Mono", monospace;
+  font-family: "Atkinson Hyperlegible", sans-serif;
   font-size: 0.82rem;
   line-height: 1.55;
 }
@@ -1084,6 +1482,7 @@ select {
   .portal-trifecta-grid,
   .portal-content-grid,
   .portal-masthead,
+  .concierge-shell,
   .aquarium-hero,
   .aquarium-stats-grid,
   .aquarium-gallery-grid {
@@ -1133,6 +1532,13 @@ select {
   .tavern-gallery-card img,
   .tavern-gallery-card-large img {
     height: 280px;
+  }
+
+  .concierge-note-head,
+  .concierge-action-row,
+  .concierge-comment-head {
+    align-items: start;
+    flex-direction: column;
   }
 
   .aquarium-hero h1 {

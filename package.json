@@ -1,14 +1,15 @@
 {
-  "name": "bear-claw",
+  "name": "lobster-attack",
   "version": "0.1.0",
   "private": true,
-  "description": "A Bun-managed React + Vite Plus app for Bear Claw Inn.",
+  "description": "A Bun-managed React + Vite Plus app for Lobster Attack.",
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
     "check": "vp check"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "@tanstack/react-router": "^1.168.10",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

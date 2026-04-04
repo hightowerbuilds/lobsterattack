@@ -132,7 +132,7 @@ export type ExecuteResult =
 
 export const hospitalityDescriptor = {
   version: "0.1",
-  name: "Bear Claw Inn",
+  name: "Lobster Attack",
   surfaces: ["observe", "review", "execute"],
   trustInvariant:
     "No request path may combine untrusted instructions, secrets, and side-effect authority.",

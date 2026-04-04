@@ -10,17 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LobsterAttackRouteImport } from './routes/lobster-attack'
-import { Route as ConciergeRouteImport } from './routes/concierge'
 import { Route as IndexRouteImport } from './routes/index'
 
 const LobsterAttackRoute = LobsterAttackRouteImport.update({
   id: '/lobster-attack',
   path: '/lobster-attack',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ConciergeRoute = ConciergeRouteImport.update({
-  id: '/concierge',
-  path: '/concierge',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -31,31 +25,27 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/concierge': typeof ConciergeRoute
   '/lobster-attack': typeof LobsterAttackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/concierge': typeof ConciergeRoute
   '/lobster-attack': typeof LobsterAttackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/concierge': typeof ConciergeRoute
   '/lobster-attack': typeof LobsterAttackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/concierge' | '/lobster-attack'
+  fullPaths: '/' | '/lobster-attack'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/concierge' | '/lobster-attack'
-  id: '__root__' | '/' | '/concierge' | '/lobster-attack'
+  to: '/' | '/lobster-attack'
+  id: '__root__' | '/' | '/lobster-attack'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ConciergeRoute: typeof ConciergeRoute
   LobsterAttackRoute: typeof LobsterAttackRoute
 }
 
@@ -66,13 +56,6 @@ declare module '@tanstack/react-router' {
       path: '/lobster-attack'
       fullPath: '/lobster-attack'
       preLoaderRoute: typeof LobsterAttackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/concierge': {
-      id: '/concierge'
-      path: '/concierge'
-      fullPath: '/concierge'
-      preLoaderRoute: typeof ConciergeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -87,7 +70,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ConciergeRoute: ConciergeRoute,
   LobsterAttackRoute: LobsterAttackRoute,
 }
 export const routeTree = rootRouteImport
