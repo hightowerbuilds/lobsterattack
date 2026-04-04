@@ -27,4 +27,5 @@ bun run dev
 - The current execution flow is an in-browser simulation, not a backend service
 - Approval tokens are proof objects used to show boundary enforcement
 - The core invariant remains the same: untrusted input, secrets, and side-effect authority never share the same path
+
 # lobsterattack

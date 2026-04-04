@@ -1,0 +1,26 @@
+{
+  "name": "bear-claw",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A Bun-managed React + Vite Plus app for Bear Claw Inn.",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build",
+    "check": "vp check"
+  },
+  "dependencies": {
+    "@tanstack/react-router": "^1.168.10",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tanstack/router-plugin": "^1.167.12",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.1.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.7",
+    "vite-plus": "^0.1.15"
+  },
+  "packageManager": "bun@1.3.10"
+}
