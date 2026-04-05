@@ -857,6 +857,44 @@ button:disabled {
   z-index: 1;
 }
 
+/* ---------- ASCII Hero Canvas ---------- */
+
+.ascii-hero-wrapper {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  overflow: hidden;
+  border: 1px solid rgba(139, 232, 255, 0.28);
+  border-bottom: none;
+  background: #0a0a1a;
+}
+
+.ascii-hero-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- ASCII Steps Slideshow ---------- */
+
+.ascii-steps-wrapper {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  overflow: hidden;
+  border: 1px solid rgba(139, 232, 255, 0.18);
+  border-radius: var(--radius-sm);
+  background: #0a0a1a;
+}
+
+.ascii-steps-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- Original Aquarium Hero ---------- */
+
 .aquarium-hero {
   position: relative;
   display: grid;

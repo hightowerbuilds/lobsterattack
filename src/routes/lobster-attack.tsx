@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { startTransition, useDeferredValue, useEffect, useEffectEvent, useState } from "react";
 import { useSupabaseAuth } from "../lib/auth";
+import AsciiHero from "../components/AsciiHero";
+import AsciiSteps from "../components/AsciiSteps";
 import {
   createComment,
   createNote,
@@ -272,16 +274,7 @@ function LobsterAttackPage() {
 
   return (
     <main className="page-shell aquarium-page">
-      <section className="aquarium-hero">
-        <div className="aquarium-hero-copy">
-          <p className="aquarium-kicker">Special Exhibition</p>
-          <h1>Lobster Attack</h1>
-          <p className="aquarium-lede">
-            The underwater route now carries the whole app: sign in here, post here, edit here,
-            delete here, and leave comments here.
-          </p>
-        </div>
-      </section>
+      <AsciiHero />
 
       <section className="concierge-shell aquarium-board-shell">
         <section className="concierge-sidebar-panel">
@@ -291,20 +284,7 @@ function LobsterAttackPage() {
               Lobster Attack is now the whole message board. Anyone can read. Signed-in claws can
               post notes, edit their own writing, delete it, and comment underneath other notes.
             </p>
-            <div className="concierge-steps">
-              <div className="concierge-step">
-                <strong>1. Arrive</strong>
-                <span>Read the board without signing in.</span>
-              </div>
-              <div className="concierge-step">
-                <strong>2. Sign in</strong>
-                <span>Enter an email and use the magic link.</span>
-              </div>
-              <div className="concierge-step">
-                <strong>3. Post</strong>
-                <span>Add notes, edit or delete your own notes, and comment on threads.</span>
-              </div>
-            </div>
+            <AsciiSteps />
             {configured ? (
               <>
                 <label className="concierge-field">

@@ -6,19 +6,25 @@
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
-    "check": "vp check"
+    "check": "vp check",
+    "api:dev": "bun run --hot api/index.ts",
+    "api:start": "bun run api/index.ts"
   },
   "dependencies": {
+    "@chenglou/pretext": "^0.0.4",
     "@supabase/supabase-js": "^2.57.4",
     "@tanstack/react-router": "^1.168.10",
+    "hono": "^4.12.10",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tanstack/router-plugin": "^1.167.12",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
+    "bun-types": "^1.3.11",
     "typescript": "^5.9.3",
     "vite": "^7.1.7",
     "vite-plus": "^0.1.15"
