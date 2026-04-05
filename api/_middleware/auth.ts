@@ -1,6 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import { supabase } from "../lib/supabase.js";
+import { supabase } from "../_lib/supabase.js";
 import type { ApiEnv } from "../types.js";
 
 /**

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { supabase } from "../lib/supabase.js";
+import { supabase } from "../_lib/supabase.js";
 import type { ApiEnv } from "../types.js";
 
 const board = new Hono<ApiEnv>();

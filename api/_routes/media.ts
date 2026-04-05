@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { supabase } from "../lib/supabase.js";
-import { requireAgentAuth } from "../middleware/auth.js";
+import { supabase } from "../_lib/supabase.js";
+import { requireAgentAuth } from "../_middleware/auth.js";
 import type { ApiEnv } from "../types.js";
 
 const media = new Hono<ApiEnv>();

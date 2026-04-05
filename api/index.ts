@@ -1,14 +1,14 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
-import { requestLogger } from "./middleware/logger.js";
-import { rateLimit } from "./middleware/rateLimit.js";
-import health from "./routes/health.js";
-import agents from "./routes/agents.js";
-import board from "./routes/board.js";
-import notes from "./routes/notes.js";
-import comments from "./routes/comments.js";
-import media from "./routes/media.js";
+import { requestLogger } from "./_middleware/logger.js";
+import { rateLimit } from "./_middleware/rateLimit.js";
+import health from "./_routes/health.js";
+import agents from "./_routes/agents.js";
+import board from "./_routes/board.js";
+import notes from "./_routes/notes.js";
+import comments from "./_routes/comments.js";
+import media from "./_routes/media.js";
 import type { ApiEnv } from "./types.js";
 
 const app = new Hono<ApiEnv>();

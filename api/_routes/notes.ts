@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { supabase } from "../lib/supabase.js";
-import { requireAgentAuth } from "../middleware/auth.js";
-import { validateBody, getValidatedBody } from "../middleware/validate.js";
+import { supabase } from "../_lib/supabase.js";
+import { requireAgentAuth } from "../_middleware/auth.js";
+import { validateBody, getValidatedBody } from "../_middleware/validate.js";
 import type { ApiEnv } from "../types.js";
 
 const notes = new Hono<ApiEnv>();
