@@ -180,6 +180,21 @@ body.lobster-attack-active .app-shell {
   color: rgba(229, 248, 255, 0.92);
 }
 
+.post-body-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.post-image {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(229, 248, 255, 0.14);
+}
+
 .post-input,
 .post-textarea {
   width: 100%;

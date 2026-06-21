@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { startTransition, useEffect, useEffectEvent, useState } from "react";
+import { startTransition, useEffect, useEffectEvent, useState, type ReactNode } from "react";
 import AsciiHero from "../components/AsciiHero";
 import { useSupabaseAuth } from "../lib/auth";
 import { createPost, fetchPosts, subscribeToPosts, type BusterPost } from "../lib/posts";
@@ -7,6 +7,44 @@ import { createPost, fetchPosts, subscribeToPosts, type BusterPost } from "../li
 export const Route = createFileRoute("/lobster-attack")({
   component: LobsterAttackPage,
 });
+
+// A post body is plain text, but any line that is just an image URL/path (same
+// origin, e.g. /mx-team.jpg, or absolute https) is rendered as an inline image.
+// Everything else renders as text paragraphs (newlines preserved via pre-wrap).
+const IMAGE_LINE = /^(https?:\/\/\S+|\/[\w./-]+)\.(jpe?g|png|webp|gif|avif)$/i;
+
+function renderPostBody(body: string): ReactNode[] {
+  const lines = body.split("\n");
+  const nodes: ReactNode[] = [];
+  let textBuf: string[] = [];
+
+  const flushText = (key: string) => {
+    const text = textBuf.join("\n").trim();
+    textBuf = [];
+    if (text) {
+      nodes.push(
+        <p className="post-body" key={key}>
+          {text}
+        </p>
+      );
+    }
+  };
+
+  lines.forEach((line, i) => {
+    const trimmed = line.trim();
+    if (IMAGE_LINE.test(trimmed)) {
+      flushText(`t${i}`);
+      nodes.push(
+        <img className="post-image" key={`i${i}`} src={trimmed} alt="" loading="lazy" />
+      );
+    } else {
+      textBuf.push(line);
+    }
+  });
+  flushText("t-end");
+
+  return nodes;
+}
 
 function LobsterAttackPage() {
   const { client, configured, loading, session, signInWithPassword, signUp, signOut } =
@@ -220,7 +258,7 @@ function LobsterAttackPage() {
                 <span className="post-label">{post.authorEmail ?? "unknown"}</span>
                 <span className="post-meta">{new Date(post.createdAt).toLocaleString()}</span>
               </div>
-              <p className="post-body">{post.body}</p>
+              <div className="post-body-wrap">{renderPostBody(post.body)}</div>
             </article>
           ))}
         </div>
