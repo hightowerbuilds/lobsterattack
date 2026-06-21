@@ -10,6 +10,7 @@ import notes from "./_routes/notes.js";
 import comments from "./_routes/comments.js";
 import media from "./_routes/media.js";
 import posts from "./_routes/posts.js";
+import profile from "./_routes/profile.js";
 import type { ApiEnv } from "./types.js";
 
 // All routes live under /api so the paths line up in production: Vercel rewrites
@@ -49,6 +50,7 @@ app.route("/notes", notes);
 app.route("/comments", comments);
 app.route("/media", media);
 app.route("/posts", posts);
+app.route("/profile", profile);
 
 // Root — quick sanity check.
 app.get("/", (c) => {

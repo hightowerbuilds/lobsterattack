@@ -227,6 +227,18 @@ body.lobster-attack-active .app-shell {
   gap: 10px;
 }
 
+.post-username-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.post-username-row .post-input {
+  flex: 1 1 180px;
+  width: auto;
+}
+
 .post-button {
   display: inline-flex;
   min-height: 38px;

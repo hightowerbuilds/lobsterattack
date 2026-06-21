@@ -2,7 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { startTransition, useEffect, useEffectEvent, useState, type ReactNode } from "react";
 import AsciiHero from "../components/AsciiHero";
 import { useSupabaseAuth } from "../lib/auth";
-import { createPost, fetchPosts, subscribeToPosts, type BusterPost } from "../lib/posts";
+import {
+  createPost,
+  fetchMyUsername,
+  fetchPosts,
+  setUsername,
+  subscribeToPosts,
+  type BusterPost,
+} from "../lib/posts";
 
 export const Route = createFileRoute("/lobster-attack")({
   component: LobsterAttackPage,
@@ -61,6 +68,10 @@ function LobsterAttackPage() {
 
   const [draft, setDraft] = useState("");
 
+  const [username, setUsernameValue] = useState("");
+  const [usernameBusy, setUsernameBusy] = useState(false);
+  const [usernameMessage, setUsernameMessage] = useState<string | null>(null);
+
   useEffect(() => {
     document.documentElement.classList.add("lobster-attack-active");
     document.body.classList.add("lobster-attack-active");
@@ -106,6 +117,28 @@ function LobsterAttackPage() {
     return unsubscribe;
   }, [client, refreshFeed]);
 
+  const userId = session?.user.id;
+
+  useEffect(() => {
+    if (!client || !userId) {
+      setUsernameValue("");
+      return;
+    }
+
+    let active = true;
+    void fetchMyUsername(client, userId)
+      .then((current) => {
+        if (active) setUsernameValue(current ?? "");
+      })
+      .catch(() => {
+        /* leave the field empty if the profile can't be read */
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [client, userId]);
+
   async function handleSignIn() {
     const trimmed = email.trim();
     if (!trimmed || !password) {
@@ -149,6 +182,30 @@ function LobsterAttackPage() {
     setAuthMessage(null);
   }
 
+  async function handleSaveUsername() {
+    if (!client || !session) {
+      return;
+    }
+
+    const trimmed = username.trim();
+    if (!trimmed) {
+      setUsernameMessage("Enter a username.");
+      return;
+    }
+
+    setUsernameBusy(true);
+    const { error } = await setUsername(client, session, trimmed);
+    setUsernameBusy(false);
+
+    if (error) {
+      setUsernameMessage(error.message);
+      return;
+    }
+
+    setUsernameMessage("Username saved.");
+    await refreshFeed();
+  }
+
   async function handlePost() {
     if (!client || !session) {
       return;
@@ -186,11 +243,33 @@ function LobsterAttackPage() {
         ) : session ? (
           <div className="post-card post-composer">
             <div className="post-card-head">
-              <span className="post-label">Posting as {session.user.email}</span>
+              <span className="post-label">
+                Posting as {username.trim() || session.user.email}
+              </span>
               <button className="post-button post-button-ghost" onClick={handleSignOut} type="button">
                 Sign out
               </button>
             </div>
+            <div className="post-username-row">
+              <input
+                className="post-input"
+                type="text"
+                value={username}
+                onChange={(event) => setUsernameValue(event.target.value)}
+                placeholder="username"
+                maxLength={40}
+                autoComplete="off"
+              />
+              <button
+                className="post-button post-button-ghost"
+                onClick={handleSaveUsername}
+                type="button"
+                disabled={usernameBusy}
+              >
+                Save name
+              </button>
+            </div>
+            {usernameMessage ? <p className="post-meta">{usernameMessage}</p> : null}
             <textarea
               className="post-textarea"
               value={draft}
@@ -255,7 +334,7 @@ function LobsterAttackPage() {
           {posts.map((post) => (
             <article key={post.id} className="post-card">
               <div className="post-card-head">
-                <span className="post-label">{post.authorEmail ?? "unknown"}</span>
+                <span className="post-label">{post.username ?? post.authorEmail ?? "unknown"}</span>
                 <span className="post-meta">{new Date(post.createdAt).toLocaleString()}</span>
               </div>
               <div className="post-body-wrap">{renderPostBody(post.body)}</div>
