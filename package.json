@@ -7,8 +7,8 @@
     "dev": "vp dev",
     "build": "vp build",
     "check": "vp check",
-    "api:dev": "bun run --hot api/index.ts",
-    "api:start": "bun run api/index.ts"
+    "api:dev": "bun run --hot api/_server.ts",
+    "api:start": "bun run api/_server.ts"
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.4",
