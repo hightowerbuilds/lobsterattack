@@ -9,6 +9,7 @@ import board from "./_routes/board.js";
 import notes from "./_routes/notes.js";
 import comments from "./_routes/comments.js";
 import media from "./_routes/media.js";
+import posts from "./_routes/posts.js";
 import type { ApiEnv } from "./types.js";
 
 const app = new Hono<ApiEnv>();
@@ -44,6 +45,7 @@ app.route("/board", board);
 app.route("/notes", notes);
 app.route("/comments", comments);
 app.route("/media", media);
+app.route("/posts", posts);
 
 // Root — quick sanity check.
 app.get("/", (c) => {

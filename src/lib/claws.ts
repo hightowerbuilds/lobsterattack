@@ -163,6 +163,24 @@ export async function signInClaw(client: SupabaseClient, email: string) {
   });
 }
 
+export async function signInClawPassword(
+  client: SupabaseClient,
+  email: string,
+  password: string,
+) {
+  return client.auth.signInWithPassword({ email, password });
+}
+
+export async function signUpClaw(client: SupabaseClient, email: string, password: string) {
+  return client.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${window.location.origin}/lobster-attack`,
+    },
+  });
+}
+
 export async function signOutClaw(client: SupabaseClient) {
   return client.auth.signOut();
 }

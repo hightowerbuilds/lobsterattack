@@ -15,7 +15,9 @@ import {
   getSupabaseBrowserClient,
   getSupabaseConfig,
   signInClaw,
+  signInClawPassword,
   signOutClaw,
+  signUpClaw,
   type ClawProfile,
 } from "./claws";
 
@@ -27,6 +29,11 @@ type AuthContextValue = {
   profile: ClawProfile | null;
   loading: boolean;
   signIn: (email: string) => Promise<{ error: Error | null }>;
+  signInWithPassword: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: Error | null; needsConfirmation: boolean }>;
   signOut: () => Promise<{ error: Error | null }>;
 };
 
@@ -99,6 +106,30 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         const { error } = await signInClaw(client, email);
         return {
           error: error ?? null,
+        };
+      },
+      async signInWithPassword(email, password) {
+        if (!client) {
+          return { error: new Error("Supabase is not configured.") };
+        }
+
+        const { error } = await signInClawPassword(client, email, password);
+        return {
+          error: error ?? null,
+        };
+      },
+      async signUp(email, password) {
+        if (!client) {
+          return { error: new Error("Supabase is not configured."), needsConfirmation: false };
+        }
+
+        const { data, error } = await signUpClaw(client, email, password);
+        // When email confirmation is enabled, Supabase returns a user with no
+        // active session — the caller must confirm via the emailed link first.
+        const needsConfirmation = Boolean(data?.user && !data.session);
+        return {
+          error: error ?? null,
+          needsConfirmation,
         };
       },
       async signOut() {
