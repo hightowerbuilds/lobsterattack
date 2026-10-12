@@ -1,6 +1,6 @@
 # Plan: a home page, with the graph a link away
 
-Status (2026-10-12): drafted, not started. Each step goes to production on its
+Status (2026-10-12): H1, H2 and H3 live; H4 (screenshots before each push) next. Each step goes to production on its
 own (`git push origin main`; Vercel builds it), as the user asked.
 
 ## What the user asked for

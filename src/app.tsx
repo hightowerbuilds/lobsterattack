@@ -13,7 +13,7 @@ import { session, signOut } from "./auth.ts";
 import { ChatPage, ChatsPage } from "./chats.tsx";
 import { SignIn } from "./signin.tsx";
 import "./style.css";
-import { GraphPage } from "./graph-page.tsx";
+import { GraphPage, warmGraph } from "./graph-page.tsx";
 import {
   changesQuery,
   forget,
@@ -233,6 +233,8 @@ function SignedIn() {
   const vault = vaultQuery();
   changesQuery();
   createEffect(() => showVault(vault.data, vault.error));
+  // The graph lays itself out from here on, whichever page is open.
+  createEffect(() => loaded() && warmGraph());
   return (
     <Show when={loaded()}>
       <App />

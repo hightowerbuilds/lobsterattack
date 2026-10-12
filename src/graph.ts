@@ -631,6 +631,9 @@ export class GraphView {
     this.ortho.updateProjectionMatrix();
     this.perspective.aspect = this.width / this.height;
     this.perspective.updateProjectionMatrix();
+    // Laid out before it was shown (on the home page): fit it to the size
+    // it now has, since the layout may have settled meanwhile.
+    if (this.placed && this.autofit && !this.flight) this.apply(this.fitted());
     this.dirty = true;
   }
 

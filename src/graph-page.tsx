@@ -3,7 +3,7 @@
 // (graph.ts) live as long as the page and are fed from the store; notes
 // tiny-axe just wrote glow.
 
-import { createEffect, createMemo, createSignal, For, on, onMount, Show, type JSX } from "solid-js";
+import { createEffect, createMemo, createRoot, createSignal, For, on, onMount, Show, type JSX } from "solid-js";
 import { choices, isFiltered, neighbourhood, NO_FILTERS, visibleMask, type Filters } from "./filter.ts";
 import { GraphView, type Dims } from "./graph.ts";
 import { changes, go, graph, href, noteHref, recall, remember, route } from "./store.ts";
@@ -37,35 +37,46 @@ export function setDims(next: Dims) {
   localView?.setDims(next);
 }
 
-export function GraphPage() {
-  globalView ??= new GraphView({
+// What the filters leave showing, of the whole graph.
+const mask = createMemo(() => {
+  const g = graph();
+  return g ? visibleMask(g, filters()) : new Uint8Array(0);
+});
+
+/** The global graph, made and fed as soon as the vault is here, whatever
+ * page is open: its worker lays the graph out meanwhile, so opening /graph
+ * shows it in place. It draws nothing until it's attached. */
+export function warmGraph(): GraphView {
+  if (globalView) return globalView;
+  const view = (globalView = new GraphView({
     label: "A graph of every note and its links. The sidebar lists the same notes.",
     background: "--bg",
     open: (id) => go(noteHref(id)),
     status: setMoving,
+  }));
+  view.setDims(dims());
+  createRoot(() => {
+    // New data first, then what the filters leave showing (both skip work
+    // when nothing they care about changed).
+    createEffect(() => {
+      const g = graph();
+      if (!g) return;
+      view.setData(g.nodes, g.links);
+      view.setVisible(mask());
+    });
+    createEffect(on(changes, (c) => view.glow(c.ids), { defer: true }));
+    createEffect(on(filters, (f) => remember("graph-filters", f), { defer: true }));
   });
-  const view = globalView;
+  return view;
+}
+
+export function GraphPage() {
+  const view = warmGraph();
   view.setDims(dims());
   document.title = "tiny-axe know-how";
 
-  const mask = createMemo(() => {
-    const g = graph();
-    return g ? visibleMask(g, filters()) : new Uint8Array(0);
-  });
-
   let holder!: HTMLDivElement;
   onMount(() => view.attach(holder));
-
-  // New data first, then what the filters leave showing (both skip work
-  // when nothing they care about changed).
-  createEffect(() => {
-    const g = graph();
-    if (!g) return;
-    view.setData(g.nodes, g.links);
-    view.setVisible(mask());
-  });
-  createEffect(on(changes, (c) => view.glow(c.ids), { defer: true }));
-  createEffect(on(filters, (f) => remember("graph-filters", f), { defer: true }));
   // Arriving at /?focus=ID flies to that note; new data never moves the camera.
   createEffect(
     on(href, () => {
