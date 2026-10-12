@@ -259,5 +259,12 @@ describe("the site's reads", () => {
     const after = (await view("/changes")).body;
     expect(after.notes).not.toBeNull();
     expect(after.chats).toBe(before.chats);
+
+    // Which ones, since a time.
+    const since = (await view(`/changes?since=${encodeURIComponent(after.notes)}`)).body;
+    expect(since.changed).toEqual({ notes: [], chats: [] });
+    await call("chat_push", { chat: chat({ updated: "2026-10-11T16:00:00Z" }) });
+    const later = (await view(`/changes?since=${encodeURIComponent(after.notes)}`)).body;
+    expect(later.changed).toEqual({ notes: [], chats: ["20261011-153012-a1b2"] });
   });
 });

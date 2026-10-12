@@ -2,7 +2,7 @@
   "name": "lobster-attack",
   "version": "0.1.0",
   "private": true,
-  "description": "A Bun-managed React + Vite Plus app for Lobster Attack.",
+  "description": "tiny-axe's hosted home: its know-how graph and chats (Solid + Vite Plus, Hono API).",
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
@@ -13,23 +13,19 @@
     "tinyaxe-key": "bun scripts/tinyaxe-key.ts"
   },
   "dependencies": {
-    "@chenglou/pretext": "^0.0.4",
     "@supabase/supabase-js": "^2.57.4",
-    "@tanstack/react-router": "^1.168.10",
+    "d3-force-3d": "3.0.6",
     "hono": "^4.12.10",
     "marked": "18.0.14",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "zod": "^4.3.6"
+    "solid-js": "1.9.15",
+    "three": "0.186.0"
   },
   "devDependencies": {
-    "@tanstack/router-plugin": "^1.167.12",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
-    "@vitejs/plugin-react": "^5.1.0",
+    "@types/three": "0.186.0",
     "bun-types": "^1.3.11",
     "typescript": "^5.9.3",
     "vite": "^7.1.7",
+    "vite-plugin-solid": "^2.11.14",
     "vite-plus": "^0.1.15"
   },
   "packageManager": "bun@1.3.10"

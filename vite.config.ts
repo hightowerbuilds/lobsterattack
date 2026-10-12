@@ -1,13 +1,9 @@
-import react from "@vitejs/plugin-react";
-import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import solid from "vite-plugin-solid";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-  plugins: [
-    tanstackRouter({
-      target: "react",
-      autoCodeSplitting: true,
-    }),
-    react(),
-  ],
+  plugins: [solid()],
+  // The API runs beside the page in development (bun run api:dev).
+  server: { proxy: { "/api": "http://localhost:3001" } },
+  worker: { format: "es" },
 });

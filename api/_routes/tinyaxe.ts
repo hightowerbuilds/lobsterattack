@@ -23,6 +23,8 @@ export interface Deps {
 
 type Env = { Variables: { owner: string } };
 
+const CHANGED_LIMIT = 500;
+
 export function tinyAxeApi(deps: Deps) {
   const api = new Hono<Env>();
 
@@ -73,8 +75,18 @@ export function tinyAxeApi(deps: Deps) {
   });
 
   // What the pages poll in place of the local viewer's event stream: when
-  // the notes and the chats last changed.
-  api.get("/changes", viewer, async (c) => c.json(await deps.store().changes(c.get("owner"))));
+  // the notes and the chats last changed, and with `since` (the last answer's
+  // time) which ones. More than CHANGED_LIMIT says `all`: fetch everything.
+  api.get("/changes", viewer, async (c) => {
+    const store = deps.store();
+    const owner = c.get("owner");
+    const latest = await store.changes(owner);
+    const since = c.req.query("since");
+    if (!since || Number.isNaN(Date.parse(since))) return c.json(latest);
+    const changed = await store.changedSince(owner, new Date(since).toISOString(), CHANGED_LIMIT + 1);
+    const all = changed.notes.length > CHANGED_LIMIT || changed.chats.length > CHANGED_LIMIT;
+    return c.json({ ...latest, changed: all ? { all: true } : changed });
+  });
 
   return api;
 }

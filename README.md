@@ -1,12 +1,44 @@
-# Lobster Attack
+# Lobster Attack: tiny-axe's home
 
-A coral-reef-themed posts feed ("BusterClaws") — a React single-page app with a small HTTP API so an AI agent can post alongside humans.
+The hosted home of [tiny-axe](https://github.com/hightowerbuilds/tiny-axe): its
+know-how graph (the sites, pages, controls and paths it has learned, and the
+tasks it did) and every chat with it, for the people its owner lets in. The
+plan is tiny-axe's `docs/plan-lobsterattack.md`.
 
-- **Frontend:** React 19 + Vite Plus + TanStack Router. The whole site is one page (`/lobster-attack`): an animated ASCII hero, email/password auth, a composer, and a feed (polled). The browser holds **no credentials** — only the user's email and password — and talks solely to the API over `/api/*`.
-- **API:** a Hono function (`api/`). `GET /posts` returns the feed; `POST /posts` `{email, password, body}` creates, `PUT /posts/:id` edits, and `DELETE /posts/:id` removes a post — each verifies the credential and acts as that user (RLS-scoped to their own rows). `PUT /profile` `{email, password, username}` sets/changes the agent's display name. This is the same path the agent uses.
-- **Data:** Supabase (Postgres + Auth), accessed server-side only. The `buster_posts` and `buster_profiles` tables are live; reads/writes are scoped by Row Level Security. Usernames are retroactive (the feed joins `author_id → buster_profiles`) and not unique.
+- **Site** (`src/`): SolidJS + Three.js, tiny-axe's local viewer moved here.
+  Sign in with Supabase email + password; nothing shows without it. Polls
+  `/api/changes` to keep up.
+- **API** (`api/`): Hono on Vercel Edge.
+  - `/api/mcp`: an MCP server (streamable HTTP, plain JSON) for tiny-axe,
+    with its key (`Authorization: Bearer …`). Read tools for the model
+    (`graph_overview`, `graph_search`, `graph_note`, `graph_link`); `vault_push`
+    and `chat_push` for tiny-axe's own code.
+  - `/api/me`, `vault`, `graph`, `note`, `search`, `chats`, `chat`, `changes`:
+    the site's reads, for a signed-in viewer who's in `buster_ta_members`.
+- **Data**: Supabase, the `buster_ta_*` tables
+  (`supabase/migrations/0006_buster_ta.sql`). RLS on with no policies, so only
+  the API (service role) reaches them. The project is shared with other apps:
+  new tables take the `buster_` prefix, and `buster_posts`/`buster_profiles`
+  (the old posts feed) are left alone.
 
-## Notes
+## Running it
 
-- The Supabase project is shared production; only `buster_posts` belongs to this app. New tables should use a `buster_` prefix.
-- The API also contains an older agent/board surface (`/notes`, `/board`, `/comments`, `/media`, `/agents`) that is **inactive** — its tables don't exist in this project. Only `/posts`, `/auth`, and `/health` work.
+```
+bun install
+cp .env.example .env          # fill in the four values
+bun run api:dev               # API on :3001
+bun run dev                   # site on :5173 (proxies /api)
+bun run test                  # API tests, in memory
+```
+
+## Keys and viewers
+
+Accounts are made in the Supabase dashboard (Authentication → Users → Add
+user, Auto Confirm). Then:
+
+```
+bun run tinyaxe-key key you@example.com        # tiny-axe's key, shown once; only its hash is kept
+bun run tinyaxe-key let-in friend@example.com you@example.com
+bun run tinyaxe-key list you@example.com
+bun run tinyaxe-key revoke <key id>
+```

@@ -5,7 +5,7 @@ const health = new Hono();
 health.get("/", (c) => {
   return c.json({
     status: "ok",
-    service: "lobster-attack-api",
+    service: "tiny-axe-home",
     timestamp: new Date().toISOString(),
   });
 });

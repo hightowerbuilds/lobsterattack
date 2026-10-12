@@ -7,7 +7,7 @@ type BucketEntry = { tokens: number; lastRefill: number };
 /**
  * Simple in-memory token-bucket rate limiter.
  *
- * Each agent gets `maxTokens` requests per `windowMs` period.
+ * Each IP gets `maxTokens` requests per `windowMs` period.
  * Tokens refill gradually based on elapsed time.
  */
 export function rateLimit(opts: { maxTokens: number; windowMs: number }) {
@@ -25,8 +25,7 @@ export function rateLimit(opts: { maxTokens: number; windowMs: number }) {
   }, 60_000);
 
   return createMiddleware<ApiEnv>(async (c, next) => {
-    // Key by agent ID if authenticated, otherwise by IP.
-    const key = c.get("agent")?.agentId ?? c.req.header("x-forwarded-for") ?? "unknown";
+    const key = c.req.header("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
 
     const now = Date.now();
     let bucket = buckets.get(key);

@@ -31,6 +31,12 @@ export interface Changes {
   chats: string | null;
 }
 
+/** The notes and chats written after a time, up to a limit each. */
+export interface Changed {
+  notes: string[];
+  chats: string[];
+}
+
 export interface Store {
   /** The owner a live (unrevoked) agent key's SHA-256 belongs to. */
   ownerForKey(keyHash: string): Promise<string | null>;
@@ -46,6 +52,7 @@ export interface Store {
   chatHash(owner: string, id: string): Promise<string | null>;
   putChat(owner: string, chat: StoredChat): Promise<void>;
   changes(owner: string): Promise<Changes>;
+  changedSince(owner: string, since: string, limit: number): Promise<Changed>;
 }
 
 // PostgREST gives at most 1,000 rows per request.
@@ -194,6 +201,21 @@ export function supabaseStore(db: SupabaseClient): Store {
       const [notes, chats] = await Promise.all([latest("buster_ta_notes", owner), latest("buster_ta_chats", owner)]);
       return { notes, chats };
     },
+
+    async changedSince(owner, since, limit) {
+      const ids = async (table: string) => {
+        const { data, error } = await db
+          .from(table)
+          .select("id")
+          .eq("owner_id", owner)
+          .gt("updated_at", since)
+          .limit(limit);
+        if (error) throw new Error(error.message);
+        return (data ?? []).map((r: { id: string }) => r.id);
+      };
+      const [notes, chats] = await Promise.all([ids("buster_ta_notes"), ids("buster_ta_chats")]);
+      return { notes, chats };
+    },
   };
 }
 
@@ -239,6 +261,10 @@ export function memoryStore(seed: {
     changes: async (owner: string) => ({
       notes: newest(of(notes, owner).values()),
       chats: newest(of(chats, owner).values()),
+    }),
+    changedSince: async (owner: string, since: string, limit: number) => ({
+      notes: [...of(notes, owner).values()].filter((n) => n.at > since).slice(0, limit).map((n) => n.id),
+      chats: [...of(chats, owner).values()].filter((c) => c.at > since).slice(0, limit).map((c) => c.id),
     }),
   };
   return store;
