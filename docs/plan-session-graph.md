@@ -1,6 +1,6 @@
 # Plan: the session graph (chats, read by Gemma and Jev, as a graph)
 
-Status (2026-10-12): S1 live (the site's side, seeded from titles); S2 built in tiny-axe (`TinyAxe.Review`, `/review`, pushed by `Sync`); S3 next.
+Status (2026-10-12): done. S1 live; S2 in tiny-axe (`TinyAxe.Review`, `/review`, pushed by `Sync`); S3 ran: the 8 real chats reviewed by Gemma 4 e4b + Jev 1.13 and on the live Sessions graph, prompts tuned once (a `system` category, generic words refused, `/review all` to read everything again).
 
 ## What the user asked for
 
@@ -68,7 +68,9 @@ Jev calls like any other).
 
 ## Open
 
-- The starting categories. Suggested: coding, research, shopping, writing,
-  site/tiny-axe itself, other. The user may want their own.
+- The categories are coding, system, research, shopping, writing, tiny-axe,
+  other. The user may want their own.
+- Badges on the Sessions tab (each session's category and concepts) aren't
+  built yet.
 - Whether to review the chats once with Haiku instead, when Gemma's tags
   are poor; the plan keeps to Gemma + Jev as asked.
