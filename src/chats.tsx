@@ -1,13 +1,13 @@
 // The chat history: every session by the launch of tiny-axe it started in,
-// searchable (the home page's Sessions tab), and one chat as it was shown. Both fetch again when tiny-axe
-// writes a chat (the server's `history` event), into stores, so rows and
+// searchable (the home page's History tab), and one chat as it was shown.
+// Both fetch again when tiny-axe writes a chat (the poll), into stores, so rows and
 // messages already on the page stay put, and so do the scroll and the
 // search. Text from chats always goes in as text; the only HTML inserted is
 // a message the server rendered (render.ts).
 
-import { createEffect, createMemo, createSignal, For, Match, on, Show, Switch } from "solid-js";
+import { createEffect, createSignal, For, Match, Show, Switch } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { chatHref, chatQuery, chatsQuery, sessionsQuery, type ChatDetail, type ChatList } from "./store.ts";
+import { chatHref, chatQuery, chatsQuery, type ChatDetail, type ChatList } from "./store.ts";
 
 // Kept while the page is open, so coming back from a chat finds the same search.
 const [query, setQuery] = createSignal("");
@@ -15,15 +15,6 @@ const [query, setQuery] = createSignal("");
 export function ChatsPage() {
   let typing: number | undefined;
   const list = chatsQuery(query);
-  // Each session's review (its category and concepts), from the session graph.
-  const sessions = sessionsQuery();
-  const reviewed = createMemo(() => {
-    const m = new Map<string, { category: string; concepts: string[] }>();
-    for (const n of sessions.data?.nodes ?? []) {
-      if (n.kind === "session") m.set(n.id.slice("session:".length), { category: n.folder, concepts: n.drivers });
-    }
-    return m;
-  });
   const [shown, setShown] = createStore<ChatList>({ total: 0, sessions: [] });
   const [loaded, setLoaded] = createSignal(false);
   createEffect(() => {
@@ -82,14 +73,6 @@ export function ChatsPage() {
                       <Show when={chat.snippet !== chat.title && chat.snippet}>
                         <span class="snippet">{chat.snippet}</span>
                       </Show>
-                      <Show when={reviewed().get(chat.id)}>
-                        {(r) => (
-                          <span class="review-badges">
-                            <span class="badge category">{r().category}</span>
-                            <For each={r().concepts}>{(c) => <span class="badge concept">{c}</span>}</For>
-                          </span>
-                        )}
-                      </Show>
                     </a>
                   </li>
                 )}
@@ -112,7 +95,7 @@ export function ChatPage(props: { id: string }) {
     const latest = chat.error ? null : chat.data;
     if (!latest) return;
     setShown("chat", reconcile(latest, { key: "id" }));
-    document.title = `${latest.title || "Untitled chat"} · tiny-axe know-how`;
+    document.title = `${latest.title || "Untitled chat"} · tiny-axe chats`;
   });
 
   return (

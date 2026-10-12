@@ -1,19 +1,9 @@
-// Where tiny-axe's notes and chats are kept: the `buster_ta_*` tables
-// (supabase/migrations/0006_buster_ta.sql), reached with the service-role key
+// Where tiny-axe's chats (and who may see them) are kept: the `buster_ta_*`
+// tables (supabase/migrations/0006_buster_ta.sql), reached with the service-role key
 // after the API has checked who's asking. Every read and write is for one
 // owner. Tests use `memoryStore()` instead.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { NoteFile } from "./vault/vault.js";
-
-export interface StoredNote extends NoteFile {
-  kind: string;
-  title: string;
-  hash: string;
-  /** "push" from tiny-axe's vault writer, "agent" from the model. */
-  source: "push" | "agent";
-}
-
 export interface StoredChat {
   id: string;
   session: string;
@@ -25,26 +15,13 @@ export interface StoredChat {
   hash: string;
 }
 
-/** A chat's review (docs/plan-session-graph.md). */
-export interface Review {
-  chat_id: string;
-  summary: string;
-  category: string;
-  concepts: string[];
-  model: string | null;
-  decider: string | null;
-  reviewed_at: string;
-}
-
 export interface Changes {
-  /** When a note or a chat was last written, ISO 8601; null for none yet. */
-  notes: string | null;
+  /** When a chat was last written, ISO 8601; null for none yet. */
   chats: string | null;
 }
 
-/** The notes and chats written after a time, up to a limit each. */
+/** The chats written after a time, up to a limit. */
 export interface Changed {
-  notes: string[];
   chats: string[];
 }
 
@@ -53,19 +30,10 @@ export interface Store {
   ownerForKey(keyHash: string): Promise<string | null>;
   /** The owner whose site a signed-in user may see; null if they may see none. */
   ownerForViewer(userId: string): Promise<string | null>;
-  manifest(owner: string): Promise<Record<string, unknown> | null>;
-  notes(owner: string): Promise<NoteFile[]>;
-  noteHashes(owner: string, ids: string[]): Promise<Map<string, string>>;
-  putNotes(owner: string, notes: StoredNote[]): Promise<void>;
-  putManifest(owner: string, manifest: Record<string, unknown>): Promise<void>;
   chats(owner: string): Promise<unknown[]>;
   chat(owner: string, id: string): Promise<unknown | null>;
   chatHash(owner: string, id: string): Promise<string | null>;
   putChat(owner: string, chat: StoredChat): Promise<void>;
-  /** Every chat's id, title and times, for the session graph. */
-  chatHeads(owner: string): Promise<{ id: string; title: string; started: string; updated: string }[]>;
-  reviews(owner: string): Promise<Review[]>;
-  putReview(owner: string, review: Review): Promise<void>;
   changes(owner: string): Promise<Changes>;
   changedSince(owner: string, since: string, limit: number): Promise<Changed>;
 
@@ -131,59 +99,6 @@ export function supabaseStore(db: SupabaseClient): Store {
       return data?.owner_id ?? null;
     },
 
-    async manifest(owner) {
-      const { data, error } = await db.from("buster_ta_vault").select("manifest").eq("owner_id", owner).maybeSingle();
-      if (error) throw new Error(error.message);
-      return data?.manifest ?? null;
-    },
-
-    async notes(owner) {
-      const rows = await every<{ id: string; folder: string; text: string }>((from, to) =>
-        db.from("buster_ta_notes").select("id, folder, text").eq("owner_id", owner).order("id").range(from, to),
-      );
-      return rows;
-    },
-
-    async noteHashes(owner, ids) {
-      const hashes = new Map<string, string>();
-      for (let i = 0; i < ids.length; i += BATCH) {
-        const { data, error } = await db
-          .from("buster_ta_notes")
-          .select("id, hash")
-          .eq("owner_id", owner)
-          .in("id", ids.slice(i, i + BATCH));
-        if (error) throw new Error(error.message);
-        for (const row of data ?? []) hashes.set(row.id, row.hash);
-      }
-      return hashes;
-    },
-
-    async putNotes(owner, notes) {
-      const at = new Date().toISOString();
-      for (let i = 0; i < notes.length; i += BATCH) {
-        const rows = notes.slice(i, i + BATCH).map((n) => ({
-          owner_id: owner,
-          id: n.id,
-          folder: n.folder,
-          kind: n.kind,
-          title: n.title,
-          text: n.text,
-          hash: n.hash,
-          source: n.source,
-          updated_at: at,
-        }));
-        const { error } = await db.from("buster_ta_notes").upsert(rows, { onConflict: "owner_id,id" });
-        if (error) throw new Error(error.message);
-      }
-    },
-
-    async putManifest(owner, manifest) {
-      const { error } = await db
-        .from("buster_ta_vault")
-        .upsert({ owner_id: owner, manifest, updated_at: new Date().toISOString() }, { onConflict: "owner_id" });
-      if (error) throw new Error(error.message);
-    },
-
     async chats(owner) {
       const rows = await every<{ doc: unknown }>((from, to) =>
         db.from("buster_ta_chats").select("doc").eq("owner_id", owner).order("id").range(from, to),
@@ -220,44 +135,19 @@ export function supabaseStore(db: SupabaseClient): Store {
       if (error) throw new Error(error.message);
     },
 
-    async chatHeads(owner) {
-      return every<{ id: string; title: string; started: string; updated: string }>((from, to) =>
-        db.from("buster_ta_chats").select("id,title,started,updated").eq("owner_id", owner).order("id").range(from, to),
-      );
-    },
-
-    async reviews(owner) {
-      const rows = await every<Review & { owner_id: string; updated_at: string }>((from, to) =>
-        db.from("buster_ta_reviews").select("*").eq("owner_id", owner).order("chat_id").range(from, to),
-      );
-      return rows.map(({ owner_id: _o, updated_at: _u, ...r }) => ({ ...r, concepts: Array.isArray(r.concepts) ? r.concepts : [] }));
-    },
-
-    async putReview(owner, review) {
-      const { error } = await db
-        .from("buster_ta_reviews")
-        .upsert({ owner_id: owner, ...review, updated_at: new Date().toISOString() }, { onConflict: "owner_id,chat_id" });
-      if (error) throw new Error(error.message);
-    },
-
     async changes(owner) {
-      const [notes, chats] = await Promise.all([latest("buster_ta_notes", owner), latest("buster_ta_chats", owner)]);
-      return { notes, chats };
+      return { chats: await latest("buster_ta_chats", owner) };
     },
 
     async changedSince(owner, since, limit) {
-      const ids = async (table: string) => {
-        const { data, error } = await db
-          .from(table)
-          .select("id")
-          .eq("owner_id", owner)
-          .gt("updated_at", since)
-          .limit(limit);
-        if (error) throw new Error(error.message);
-        return (data ?? []).map((r: { id: string }) => r.id);
-      };
-      const [notes, chats] = await Promise.all([ids("buster_ta_notes"), ids("buster_ta_chats")]);
-      return { notes, chats };
+      const { data, error } = await db
+        .from("buster_ta_chats")
+        .select("id")
+        .eq("owner_id", owner)
+        .gt("updated_at", since)
+        .limit(limit);
+      if (error) throw new Error(error.message);
+      return { chats: (data ?? []).map((r: { id: string }) => r.id) };
     },
 
     async usernameTaken(username) {
@@ -297,14 +187,11 @@ export function supabaseStore(db: SupabaseClient): Store {
 export function memoryStore(seed: {
   keys?: Record<string, string>;
   members?: Record<string, string>;
-} = {}): Store & { notesWritten: number } {
+} = {}): Store {
   const keys = new Map(Object.entries(seed.keys ?? {}));
   const members = new Map(Object.entries(seed.members ?? {}));
   const usernames = new Map<string, string>();
-  const manifests = new Map<string, Record<string, unknown>>();
-  const notes = new Map<string, Map<string, StoredNote & { at: string }>>();
   const chats = new Map<string, Map<string, StoredChat & { at: string }>>();
-  const reviews = new Map<string, Map<string, Review>>();
   const of = <T>(m: Map<string, Map<string, T>>, owner: string) => {
     if (!m.has(owner)) m.set(owner, new Map());
     return m.get(owner)!;
@@ -315,34 +202,14 @@ export function memoryStore(seed: {
   const newest = (rows: Iterable<{ at: string }>) => [...rows].map((r) => r.at).sort().at(-1) ?? null;
 
   const store = {
-    notesWritten: 0,
     ownerForKey: async (hash: string) => keys.get(hash) ?? null,
     ownerForViewer: async (user: string) => members.get(user) ?? null,
-    manifest: async (owner: string) => manifests.get(owner) ?? null,
-    notes: async (owner: string) => [...of(notes, owner).values()].map(({ id, folder, text }) => ({ id, folder, text })),
-    noteHashes: async (owner: string, ids: string[]) => {
-      const mine = of(notes, owner);
-      return new Map(ids.filter((id) => mine.has(id)).map((id) => [id, mine.get(id)!.hash]));
-    },
-    putNotes: async (owner: string, rows: StoredNote[]) => {
-      const mine = of(notes, owner);
-      for (const row of rows) mine.set(row.id, { ...row, at: now() });
-      store.notesWritten += rows.length;
-    },
-    putManifest: async (owner: string, manifest: Record<string, unknown>) => void manifests.set(owner, manifest),
     chats: async (owner: string) => [...of(chats, owner).values()].map((c) => c.doc),
     chat: async (owner: string, id: string) => of(chats, owner).get(id)?.doc ?? null,
     chatHash: async (owner: string, id: string) => of(chats, owner).get(id)?.hash ?? null,
     putChat: async (owner: string, chat: StoredChat) => void of(chats, owner).set(chat.id, { ...chat, at: now() }),
-    chatHeads: async (owner: string) => [...of(chats, owner).values()].map(({ id, title, started, updated }) => ({ id, title, started, updated })),
-    reviews: async (owner: string) => [...of(reviews, owner).values()],
-    putReview: async (owner: string, review: Review) => void of(reviews, owner).set(review.chat_id, review),
-    changes: async (owner: string) => ({
-      notes: newest(of(notes, owner).values()),
-      chats: newest(of(chats, owner).values()),
-    }),
+    changes: async (owner: string) => ({ chats: newest(of(chats, owner).values()) }),
     changedSince: async (owner: string, since: string, limit: number) => ({
-      notes: [...of(notes, owner).values()].filter((n) => n.at > since).slice(0, limit).map((n) => n.id),
       chats: [...of(chats, owner).values()].filter((c) => c.at > since).slice(0, limit).map((c) => c.id),
     }),
     usernameTaken: async (username: string) => usernames.has(username),

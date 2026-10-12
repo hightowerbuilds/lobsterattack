@@ -8,14 +8,13 @@ const CARD = /(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)/g;
 // 24+ letters, digits, `_` and `-`, with at least one letter and one digit.
 const TOKEN = /(?<![A-Za-z0-9_-])(?=[A-Za-z0-9_-]*\d)(?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{24,}(?![A-Za-z0-9_-])/g;
 
-/** Card numbers removed (TinyAxe.Tools.Redact.text/1). Safe for notes:
- * note names never hold 13 digits in a row. */
+/** Card numbers removed (TinyAxe.Tools.Redact.text/1). */
 export function cards(text: string): string {
   return text.replace(CARD, (match) => (luhn(match.replace(/\D/g, "")) ? "[card number removed]" : match));
 }
 
 /** Card numbers and token-like strings removed (TinyAxe.Tools.Redact.secrets/1),
- * for chats. Not for notes: it could cut a long note name in a link. */
+ * for chats. */
 export function secrets(text: string): string {
   return cards(text).replace(TOKEN, "[token removed]");
 }

@@ -2,13 +2,12 @@ import { Hono, type Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { Accounts } from "../_lib/accounts.js";
 import type { Store } from "../_lib/store.js";
-import { sessionGraph } from "../_lib/sessions.js";
-import { loadChat, loadChats, loadVault, sha256 } from "../_lib/tinyaxe.js";
-import { chatDetail, chatList, detail, graphView, overview, rendererFor, search } from "../_lib/vault/views.js";
+import { loadChat, loadChats, sha256 } from "../_lib/tinyaxe.js";
+import { chatDetail, chatList } from "../_lib/chats/views.js";
 import { mcp } from "./mcp.js";
 
-// tiny-axe's home: everything tiny-axe does, shown to the people its owner
-// lets in (tiny-axe docs/plan-lobsterattack.md).
+// tiny-axe's home: its chat history, shown to the people its owner lets in
+// (tiny-axe docs/plan-lobsterattack.md).
 //
 // Two ways in, both `Authorization: Bearer …`:
 //   /api/mcp   tiny-axe, with its agent key (buster_ta_keys holds only the hash)
@@ -54,41 +53,18 @@ export function tinyAxeApi(deps: Deps) {
 
   api.get("/me", viewer, (c) => c.json({ ok: true }));
 
-  api.get("/vault", viewer, async (c) => c.json(overview(await loadVault(deps.store(), c.get("owner")))));
-
-  api.get("/graph", viewer, async (c) => c.json(graphView(await loadVault(deps.store(), c.get("owner")))));
-
-  api.get("/note", viewer, async (c) => {
-    const vault = await loadVault(deps.store(), c.get("owner"));
-    const note = vault.notes.get(c.req.query("id") ?? "");
-    return note ? c.json(detail(vault, note, rendererFor(vault))) : c.json({ error: "no such note" }, 404);
-  });
-
-  api.get("/search", viewer, async (c) => {
-    const vault = await loadVault(deps.store(), c.get("owner"));
-    return c.json({ results: search(vault, c.req.query("q") ?? "") });
-  });
-
   api.get("/chats", viewer, async (c) =>
     c.json(chatList(await loadChats(deps.store(), c.get("owner")), c.req.query("q") ?? "")),
   );
-
-  // The session graph: reviewed chats, their categories and concepts.
-  api.get("/sessions/graph", viewer, async (c) => {
-    const store = deps.store();
-    const owner = c.get("owner");
-    const [chats, reviews] = await Promise.all([store.chatHeads(owner), store.reviews(owner)]);
-    return c.json(sessionGraph(chats, reviews));
-  });
 
   api.get("/chat", viewer, async (c) => {
     const chat = await loadChat(deps.store(), c.get("owner"), c.req.query("id") ?? "");
     return chat ? c.json(chatDetail(chat)) : c.json({ error: "There's no such chat in the history." }, 404);
   });
 
-  // What the pages poll in place of the local viewer's event stream: when
-  // the notes and the chats last changed, and with `since` (the last answer's
-  // time) which ones. More than CHANGED_LIMIT says `all`: fetch everything.
+  // What the pages poll: when the chats last changed, and with `since` (the
+  // last answer's time) which ones. More than CHANGED_LIMIT says `all`:
+  // fetch everything.
   api.get("/changes", viewer, async (c) => {
     const store = deps.store();
     const owner = c.get("owner");
@@ -96,7 +72,7 @@ export function tinyAxeApi(deps: Deps) {
     const since = c.req.query("since");
     if (!since || Number.isNaN(Date.parse(since))) return c.json(latest);
     const changed = await store.changedSince(owner, new Date(since).toISOString(), CHANGED_LIMIT + 1);
-    const all = changed.notes.length > CHANGED_LIMIT || changed.chats.length > CHANGED_LIMIT;
+    const all = changed.chats.length > CHANGED_LIMIT;
     return c.json({ ...latest, changed: all ? { all: true } : changed });
   });
 

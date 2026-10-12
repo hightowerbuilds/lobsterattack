@@ -17,7 +17,7 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createEffect, createSignal, For, on, onCleanup, Show } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { renderChat } from "../api/_lib/vault/render.ts";
+import { renderChat } from "../api/_lib/chats/render.ts";
 import { session, supabase } from "./auth.ts";
 
 type Message = {

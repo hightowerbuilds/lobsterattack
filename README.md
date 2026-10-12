@@ -1,26 +1,30 @@
 # Lobster Attack: tiny-axe's home
 
-The hosted home of [tiny-axe](https://github.com/hightowerbuilds/tiny-axe): its
-know-how graph (the sites, pages, controls and paths it has learned, and the
-tasks it did) and every chat with it, for the people its owner lets in. The
-plan is tiny-axe's `docs/plan-lobsterattack.md`.
+The hosted home of [tiny-axe](https://github.com/hightowerbuilds/tiny-axe):
+every chat with it, searchable, and a line to it wherever it's running, for the
+people its owner lets in. The plan is tiny-axe's `docs/plan-lobsterattack.md`.
 
-- **Site** (`src/`): SolidJS + Three.js, tiny-axe's local viewer moved here.
-  Sign in with a username and password (Supabase Auth underneath: a username
-  stands for `<username>@users.tiny-axe.invalid`); nothing shows without it. Polls
+- **Site** (`src/`): SolidJS. Sign in with a username and password (Supabase
+  Auth underneath: a username stands for `<username>@users.tiny-axe.invalid`);
+  nothing shows without it. The home page has two tabs: **History**, the chat
+  list with its search (also at `/chats`), and **Chat**, which talks to your
+  tiny-axe over Supabase Realtime. One chat is at `/chats/<id>`. Polls
   `/api/changes` to keep up.
 - **API** (`api/`): Hono on Vercel Edge.
   - `/api/mcp`: an MCP server (streamable HTTP, plain JSON) for tiny-axe,
     with its key (`Authorization: Bearer …`). Read tools for the model
-    (`graph_overview`, `graph_search`, `graph_note`, `graph_link`); `vault_push`
-    and `chat_push` for tiny-axe's own code.
-  - `/api/me`, `vault`, `graph`, `note`, `search`, `chats`, `chat`, `changes`:
-    the site's reads, for a signed-in viewer who's in `buster_ta_members`.
-- **Data**: Supabase, the `buster_ta_*` tables
-  (`supabase/migrations/0006_buster_ta.sql`). RLS on with no policies, so only
-  the API (service role) reaches them. The project is shared with other apps:
-  new tables take the `buster_` prefix, and `buster_posts`/`buster_profiles`
-  (the old posts feed) are left alone.
+    (`chat_search`, `chat_read`, `site_link`); `chat_push` and `signin_link`
+    for tiny-axe's own code.
+  - `/api/me`, `chats`, `chat`, `changes`: the site's reads, for a signed-in
+    viewer who's in `buster_ta_members`.
+  - `/api/signup`, `/api/device`: accounts, made from tiny-axe.
+- **Remote chat** (`supabase/functions/ta-remote-*`): edge functions that keep
+  the Chat tab's messages in `buster_ta_remote`.
+- **Data**: Supabase, the `buster_ta_*` tables (`supabase/migrations/0006`
+  onwards; `0011` drops the old graph's tables). RLS on with no policies, so
+  only the API (service role) reaches them. The project is shared with other
+  apps: new tables take the `buster_` prefix, and `buster_posts`/
+  `buster_profiles` (the old posts feed) are left alone.
 
 ## Running it
 

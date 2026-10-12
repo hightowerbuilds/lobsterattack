@@ -20,10 +20,10 @@ export function SignIn() {
     <main class="signin">
       <form onSubmit={submit} aria-describedby="signin-about">
         <h1>
-          tiny-axe <span>know-how</span>
+          tiny-axe <span>chats</span>
         </h1>
         <p id="signin-about" class="about">
-          What tiny-axe has learned, and every chat with it. Sign in with the account you were given.
+          Every chat with tiny-axe, and a line to it wherever it's running. Sign in with the account you were given.
         </p>
         <label>
           Username

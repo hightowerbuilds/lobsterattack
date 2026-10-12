@@ -49,7 +49,7 @@ if (client) {
   const first = token
     ? client.auth.verifyOtp({ token_hash: token, type: "magiclink" }).then(async ({ data, error }) => {
         if (!error) return data.session;
-        setLinkProblem("That sign-in link from tiny-axe was used already or has run out. Sign in here, or type /graph in tiny-axe for a new one.");
+        setLinkProblem("That sign-in link from tiny-axe was used already or has run out. Sign in here, or ask tiny-axe for a new one.");
         return (await client.auth.getSession()).data.session;
       })
     : client.auth.getSession().then(({ data }) => data.session);

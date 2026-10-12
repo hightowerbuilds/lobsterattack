@@ -13,7 +13,7 @@ import { rateLimit } from "../_middleware/rateLimit.js";
 //   POST /api/device           {username, password, label?} → {username, key}
 //
 // An account owns its own space: signing up makes it the owner of its own
-// notes and chats, and gives tiny-axe a key for them, shown once.
+// chats, and gives tiny-axe a key for them, shown once.
 // /api/device gives an existing account a key for another install.
 
 export interface AccountDeps {
