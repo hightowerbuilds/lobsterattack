@@ -127,7 +127,9 @@ function Sidebar() {
   let typing: number | undefined;
   const summary = () => {
     const s = overview.summary;
-    return s ? `${s.sites} sites · ${s.pages} pages · ${s.paths} paths (${s.blocked} stopped) · ${s.tools} tools · ${s.tasks} tasks` : "";
+    if (!s) return "";
+    const notes = s.notes ? ` · ${s.notes} notes` : "";
+    return `${s.sites} sites · ${s.pages} pages · ${s.paths} paths (${s.blocked} stopped) · ${s.tools} tools · ${s.tasks} tasks${notes}`;
   };
 
   return (

@@ -21,7 +21,7 @@ export interface Entry {
 }
 
 export interface Overview {
-  summary: Record<"sites" | "pages" | "controls" | "paths" | "blocked" | "tools" | "tasks", number>;
+  summary: Record<"sites" | "pages" | "controls" | "paths" | "blocked" | "tools" | "tasks" | "notes", number>;
   folders: { name: string; notes: Entry[] }[];
 }
 

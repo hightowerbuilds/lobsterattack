@@ -17,6 +17,7 @@
   --path: #a68af9;
   --tool: #c98ad8;
   --task: #9aa0aa;
+  --note: #a8c450;
 
   /* Trust and the gate */
   --observed: #8c9099;
@@ -47,6 +48,7 @@
   --path: #6d4fe0;
   --tool: #9a46ad;
   --task: #6b707a;
+  --note: #6f8a1c;
   --observed: #7d818a;
   --verified: #2876c0;
   --validated: #2b8f4e;
@@ -224,6 +226,7 @@ button[aria-pressed="true"] { background: var(--raised); border-color: var(--acc
 .dot.path { background: var(--path); }
 .dot.tool { background: var(--tool); }
 .dot.task { background: var(--task); }
+.dot.note { background: var(--note); }
 .dot.verified { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3px var(--verified); }
 .dot.validated { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3px var(--validated); }
 .dot.blocked { background: var(--blocked); }

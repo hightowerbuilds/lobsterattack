@@ -625,7 +625,7 @@ export class GraphView {
       line: get("--faint"),
       accent: get("--accent"),
       blocked: get("--blocked"),
-      kinds: Object.fromEntries(["site", "page", "control", "path", "tool", "task"].map((k) => [k, get(`--${k}`)])),
+      kinds: Object.fromEntries(["site", "page", "control", "path", "tool", "task", "note"].map((k) => [k, get(`--${k}`)])),
       trust: { observed: null, verified: get("--verified"), validated: get("--validated") },
     };
     this.font = `12px ${css.getPropertyValue("--sans")}`;

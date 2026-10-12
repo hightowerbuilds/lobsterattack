@@ -105,7 +105,15 @@ describe("/api/mcp", () => {
     expect(note.status).toBe(202);
 
     const names = (await rpc("tools/list")).body.result.tools.map((t: any) => t.name);
-    expect(names).toEqual(["graph_overview", "graph_search", "graph_note", "graph_link", "vault_push", "chat_push"]);
+    expect(names).toEqual([
+      "graph_overview",
+      "graph_search",
+      "graph_note",
+      "graph_link",
+      "graph_add_note",
+      "vault_push",
+      "chat_push",
+    ]);
     expect((await rpc("tools/call", { name: "nope" })).body.error.code).toBe(-32602);
     expect((await rpc("resources/list")).body.error.code).toBe(-32601);
   });
@@ -202,6 +210,48 @@ describe("/api/mcp", () => {
 
     expect((await call("chat_push", { chat: { ...doc, id: "../x" } })).error).toBe(true);
     expect((await call("chat_push", { chat: { ...doc, version: 2 } })).error).toBe(true);
+  });
+
+  test("graph_add_note: the model's note goes in Notes, links resolve, the same title replaces it", async () => {
+    const { call, view } = await setup();
+    await call("vault_push", { manifest: MANIFEST, notes: FILES });
+
+    const first = (
+      await call("graph_add_note", { title: "How to check out on shop.example", body: "Go to the cart, then [[shop.example]].\nCard 4242 4242 4242 4242." })
+    ).json();
+    expect(first.id).toMatch(/^How-to-check-out-on-shop.example [0-9a-f]{8}$/);
+    expect(first.written).toBe(true);
+    expect(first.link).toBe(`http://localhost/note/${encodeURIComponent(first.id)}`);
+
+    const note = (await view(`/note?id=${encodeURIComponent(first.id)}`)).body;
+    expect(note.kind).toBe("note");
+    expect(note.folder).toBe("Notes");
+    expect(note.props).toContainEqual(["source", "agent"]);
+    expect(note.links).toEqual(["shop.example"]);
+    expect(note.html).toContain("[card number removed]");
+    expect((await view("/vault")).body.summary.notes).toBe(1);
+    // It links into the graph: the site now shows it as linking from the note.
+    const site = (await view("/note?id=shop.example")).body;
+    expect(site.backlinks.find((g: any) => g.folder === "Notes").notes[0].id).toBe(first.id);
+
+    const again = (await call("graph_add_note", { title: "How to check out on shop.example", body: "Updated." })).json();
+    expect(again.id).toBe(first.id);
+    expect((await view("/vault")).body.summary.notes).toBe(1);
+    expect((await view(`/note?id=${encodeURIComponent(first.id)}`)).body.html).toContain("Updated.");
+  });
+
+  test("graph_add_note refuses what isn't a note, and a title can't become markup", async () => {
+    const { call, view } = await setup();
+    expect((await call("graph_add_note", { title: " ", body: "x" })).error).toBe(true);
+    expect((await call("graph_add_note", { title: "x", body: "" })).error).toBe(true);
+    expect((await call("graph_add_note", { title: "x".repeat(121), body: "y" })).error).toBe(true);
+    expect((await call("graph_add_note", { title: "x", body: "y".repeat(20_001) })).error).toBe(true);
+
+    const odd = (await call("graph_add_note", { title: "<script>alert(1)</script> [[x]]\n# h", body: "<img src=x onerror=alert(1)>" })).json();
+    const html = (await view(`/note?id=${encodeURIComponent(odd.id)}`)).body.html;
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("<img");
+    expect(html).toContain("&lt;img");
   });
 
   test("each key sees only its own owner's site", async () => {

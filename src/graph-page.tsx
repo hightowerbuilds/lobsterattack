@@ -16,6 +16,7 @@ const KINDS: Record<string, string> = {
   tool: "Tools",
   task: "Tasks",
   workflow: "Workflows",
+  note: "Notes",
 };
 const TRUST = ["observed", "verified", "validated"];
 

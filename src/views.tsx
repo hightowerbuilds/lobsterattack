@@ -75,12 +75,17 @@ export function OverviewPage() {
           <Tile n={s().paths} what="decision paths" sub={s().blocked ? `${s().blocked} stopped by the gate` : undefined} />
           <Tile n={s().tools} what="tools" />
           <Tile n={s().tasks} what="tasks" />
+          <Tile n={s().notes} what="notes" sub="written by the model" />
         </div>
       </Show>
       <h2>Sites</h2>
       <List entries={[...notes("Sites")].sort((a, b) => (b.seen ?? 0) - (a.seen ?? 0))} meta={(e) => `${e.seen ?? 0} actions`} empty="No sites yet." />
       <h2>Recent tasks</h2>
       <List entries={[...notes("Tasks")].sort(ORDER.Tasks).slice(0, 10)} meta={(e) => e.last_seen?.slice(0, 10) ?? ""} empty="No tasks yet." />
+      <Show when={notes("Notes").length > 0}>
+        <h2>Notes</h2>
+        <List entries={[...notes("Notes")].sort(byTitle)} meta={() => "by the model"} empty="" />
+      </Show>
       <h2>Where the gate stopped it</h2>
       <List entries={notes("Paths").filter(blocked).sort(byTitle)} meta={(e) => e.gate ?? ""} empty="Nothing stopped yet." />
     </div>

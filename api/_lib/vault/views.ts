@@ -34,6 +34,7 @@ export function overview(vault: Vault) {
       blocked: blocked.length,
       tools: count("tool"),
       tasks: count("task"),
+      notes: count("note"),
     },
     // In the vault's own order (sites first), skipping empty folders.
     folders: Object.values(FOLDERS)

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { loadVault, MAX_NOTES_PER_PUSH, pushChat, pushNotes, Refused } from "../_lib/tinyaxe.js";
+import { addNote, loadVault, MAX_BODY, MAX_NOTES_PER_PUSH, MAX_TITLE, pushChat, pushNotes, Refused } from "../_lib/tinyaxe.js";
 import { overview, search } from "../_lib/vault/views.js";
 import type { Deps } from "./tinyaxe.js";
 
@@ -95,6 +95,27 @@ const TOOLS: Record<string, Tool> = {
       if (page === "chats") return text(`${origin}/chats`);
       if (typeof focus === "string" && focus !== "") return text(`${origin}/note/${encodeURIComponent(focus)}`);
       return text(`${origin}/`);
+    },
+  },
+
+  graph_add_note: {
+    description:
+      "Save a note to the user's page of tiny-axe's website, in its Notes, when the user asks you to remember " +
+      "or write down something worth keeping (how something is done, a finding, a summary). `title` names it " +
+      `(at most ${MAX_TITLE} characters; the same title replaces your earlier note of that name). \`body\` is ` +
+      "Markdown; link other notes with [[id]] (ids from graph_search). The user is asked before it's saved.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", maxLength: MAX_TITLE },
+        body: { type: "string", maxLength: MAX_BODY },
+      },
+      required: ["title", "body"],
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    async run({ title, body }, { owner, deps, origin }) {
+      const note = await addNote(deps.store(), owner, { title, body });
+      return json({ ...note, link: `${origin}/note/${encodeURIComponent(note.id)}` });
     },
   },
 

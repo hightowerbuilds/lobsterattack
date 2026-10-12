@@ -4,7 +4,7 @@
 
 export const SCHEMA = "tiny-axe-vault/1";
 
-export type Kind = "site" | "page" | "control" | "path" | "tool" | "task" | "workflow";
+export type Kind = "site" | "page" | "control" | "path" | "tool" | "task" | "workflow" | "note";
 
 export const FOLDERS: Record<Kind, string> = {
   site: "Sites",
@@ -14,6 +14,8 @@ export const FOLDERS: Record<Kind, string> = {
   tool: "Tools",
   task: "Tasks",
   workflow: "Workflows",
+  // Written by the model through /api/mcp (graph_add_note), on the site only.
+  note: "Notes",
 };
 
 export type Value = string | number | boolean | null | string[];
@@ -44,4 +46,24 @@ const LINK = /(?<!\\)\[\[([^\[\]|\n#]+)(?:#[^\[\]|\n]*)?(?:\|[^\[\]\n]*)?\]\]/g;
 export function links(body: string): string[] {
   const text = body.replace(/^```[\s\S]*?^```/gm, "").replace(/`[^`\n]*`/g, "");
   return [...text.matchAll(LINK)].map((m) => m[1].trim());
+}
+
+/** Letters, digits, `.`, `_` and `-` only, at most 60 characters (tiny-axe's slug). */
+export function slug(text: string): string {
+  const trim = (s: string) => s.replace(/^[-.]+/, "").replace(/[-.]+$/, "");
+  const ascii = text.normalize("NFKD").replace(/[^\x00-\x7F]/g, "");
+  const s = trim(trim(ascii.replace(/[^A-Za-z0-9._-]+/g, "-")).slice(0, 60));
+  return s === "" ? "note" : s;
+}
+
+/** The first 8 hex digits of SHA-256 of `kind\nkey` (tiny-axe's hash8). */
+export async function hash8(kind: string, key: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${kind}\n${key}`));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 8);
+}
+
+/** Text from outside (a page, the user, a model) made safe in a heading or a
+ * line: line breaks become spaces, and Markdown's marks get a backslash. */
+export function escapeText(text: string): string {
+  return text.replace(/\s*[\r\n]+\s*/g, " ").replace(/[\\`*_\[\]<>#|]/g, (c) => "\\" + c);
 }
