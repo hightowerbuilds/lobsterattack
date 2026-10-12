@@ -410,3 +410,21 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # declarative_schema_path = "./declarative"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# tiny-axe's remote chat (supabase/functions/ta-remote-*). Each function checks
+# who's asking itself: ta-remote-token takes tiny-axe's agent key (not a JWT),
+# the rest a session of a tiny-axe account.
+[functions.ta-remote-token]
+verify_jwt = false
+
+[functions.ta-remote-send]
+verify_jwt = false
+
+[functions.ta-remote-pending]
+verify_jwt = false
+
+[functions.ta-remote-reply]
+verify_jwt = false
+
+[functions.ta-remote-history]
+verify_jwt = false
