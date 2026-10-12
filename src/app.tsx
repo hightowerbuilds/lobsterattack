@@ -27,13 +27,12 @@ import {
   remember,
   route,
   ROUTES,
-  searchQuery,
   setMenuOpen,
   showVault,
   sorted,
   vaultQuery,
 } from "./store.ts";
-import { HomePage, Item, NotePage } from "./views.tsx";
+import { HomePage, Item, NotePage, Results } from "./views.tsx";
 
 // Dark by default; the switch's choice is remembered in this browser. Set
 // before anything draws, so a light page never starts dark.
@@ -216,37 +215,6 @@ function Tree() {
         </details>
       )}
     </For>
-  );
-}
-
-// Search results, searched again as the vault changes.
-function Results(props: { query: string }) {
-  const results = searchQuery(() => props.query);
-  return (
-    <Switch>
-      <Match when={results.error}>{(error) => <p class="problem">{error().message}</p>}</Match>
-      <Match when={results.data?.length === 0}>
-        <p class="empty">Nothing matches.</p>
-      </Match>
-      <Match when={results.data}>
-        {(list) => (
-          <ul class="results">
-            <For each={list()}>
-              {(r) => (
-                <li>
-                  <Item entry={r}>
-                    <span class="where">{r.folder}</span>
-                    <Show when={r.snippet}>
-                      <span class="snippet">{r.snippet}</span>
-                    </Show>
-                  </Item>
-                </li>
-              )}
-            </For>
-          </ul>
-        )}
-      </Match>
-    </Switch>
   );
 }
 

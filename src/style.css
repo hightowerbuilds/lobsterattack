@@ -286,6 +286,12 @@ main.full { padding: 0; height: 100vh; position: sticky; top: 0; }
 .graph-card { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 24px; }
 .graph-card .open-graph { font-size: 16px; padding: 10px 18px; }
 .graph-card .graph-count { color: var(--muted); margin-left: auto; }
+.home-search input { width: 100%; box-sizing: border-box; margin-bottom: 8px; }
+.home .more { margin: 6px 0 0; font-size: 13px; }
+.folders details { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 6px; }
+.folders summary { cursor: pointer; padding: 8px 10px; font-weight: 600; }
+.folders summary .count { color: var(--faint); font-weight: 400; margin-left: 6px; }
+.folders ul { padding: 0 8px 8px; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 28px; }
 .tile { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
 .tile .n { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
