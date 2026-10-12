@@ -21,7 +21,7 @@ people its owner lets in. The plan is tiny-axe's `docs/plan-lobsterattack.md`.
 - **Remote chat** (`supabase/functions/ta-remote-*`): edge functions that keep
   the Chat tab's messages in `buster_ta_remote`.
 - **Data**: Supabase, the `buster_ta_*` tables (`supabase/migrations/0006`
-  onwards; `0011` drops the old graph's tables). RLS on with no policies, so
+  onwards; the old graph's tables are left in place, unused). RLS on with no policies, so
   only the API (service role) reaches them. The project is shared with other
   apps: new tables take the `buster_` prefix, and `buster_posts`/
   `buster_profiles` (the old posts feed) are left alone.
