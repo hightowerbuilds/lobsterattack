@@ -11,7 +11,7 @@
 
 import { QueryClient, keepPreviousData, useQuery } from "@tanstack/solid-query";
 import { batch, createSignal } from "solid-js";
-import { createStore, reconcile } from "solid-js/store";
+import { createStore, reconcile, unwrap } from "solid-js/store";
 import type { GraphData } from "../api/_lib/vault/graph.ts";
 import { accessToken, signOut } from "./auth.ts";
 
@@ -230,7 +230,9 @@ export function showVault(data: { overview: Overview; graph: GraphData } | undef
   } else if (data) {
     batch(() => {
       setOverview(reconcile(data.overview, { key: "id" }));
-      setGraph(data.graph);
+      // The query's data is a store (a proxy); the graph wants, and posts
+      // to its worker, the plain object.
+      setGraph(unwrap(data.graph));
       setChanges((c) => ({ ids: pending.splice(0), version: c.version + 1 }));
       setProblem(null);
     });

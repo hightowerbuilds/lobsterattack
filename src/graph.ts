@@ -483,6 +483,8 @@ export class GraphView {
     this.styleDirty = false;
     const p = this.palette;
     const g = this.dots.geometry;
+    // Nothing to style before the first data.
+    if (!g.getAttribute("aRadius")) return;
     const radius = g.getAttribute("aRadius").array as Float32Array;
     const fill = g.getAttribute("aFill").array as Float32Array;
     const ring = g.getAttribute("aRing").array as Float32Array;
