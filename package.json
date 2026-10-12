@@ -8,13 +8,16 @@
     "build": "vp build",
     "check": "vp check",
     "api:dev": "bun run --hot api/_server.ts",
-    "api:start": "bun run api/_server.ts"
+    "api:start": "bun run api/_server.ts",
+    "test": "bun test api/test",
+    "tinyaxe-key": "bun scripts/tinyaxe-key.ts"
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.4",
     "@supabase/supabase-js": "^2.57.4",
     "@tanstack/react-router": "^1.168.10",
     "hono": "^4.12.10",
+    "marked": "18.0.14",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zod": "^4.3.6"

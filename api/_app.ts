@@ -11,6 +11,9 @@ import comments from "./_routes/comments.js";
 import media from "./_routes/media.js";
 import posts from "./_routes/posts.js";
 import profile from "./_routes/profile.js";
+import { tinyAxeApi } from "./_routes/tinyaxe.js";
+import { supabase } from "./_lib/supabase.js";
+import { supabaseStore, type Store } from "./_lib/store.js";
 import type { ApiEnv } from "./types.js";
 
 // All routes live under /api so the paths line up in production: Vercel rewrites
@@ -51,6 +54,19 @@ app.route("/comments", comments);
 app.route("/media", media);
 app.route("/posts", posts);
 app.route("/profile", profile);
+
+// tiny-axe's home: /api/mcp for tiny-axe, and what the site's pages read.
+let store: Store | undefined;
+app.route(
+  "/",
+  tinyAxeApi({
+    store: () => (store ??= supabaseStore(supabase)),
+    async verifyViewer(token) {
+      const { data, error } = await supabase.auth.getUser(token);
+      return error ? null : (data.user?.id ?? null);
+    },
+  })
+);
 
 // Root — quick sanity check.
 app.get("/", (c) => {
