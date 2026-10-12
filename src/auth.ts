@@ -21,6 +21,9 @@ const client =
 
 export const configured = client !== null;
 
+/** The Supabase client, for the Chat tab's edge functions and Realtime channel. */
+export const supabase = client;
+
 /** The signed-in session; undefined until it's known. */
 export const [session, setSession] = createSignal<Session | null | undefined>(client ? undefined : null);
 
