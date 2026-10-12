@@ -94,7 +94,7 @@ function List(props: { entries: Entry[]; meta: (e: Entry) => string; empty: stri
 
 /** The home page: what tiny-axe knows, in numbers and lists, and the one
  * link to the graph (which lays itself out meanwhile). */
-const TABS = ["Overview", "Lately", "Chats", "Sites", "Tasks", "Gate", "Folders", "Search"] as const;
+const TABS = ["Overview", "Chat", "Sessions", "Lately", "Sites", "Tasks", "Gate", "Folders", "Search"] as const;
 type Tab = (typeof TABS)[number];
 
 /** The home page: what tiny-axe knows, one tab at a time, filling the
@@ -104,7 +104,7 @@ export function HomePage() {
   document.title = "tiny-axe know-how";
   const notes = (folder: string) => overview.folders.find((f) => f.name === folder)?.notes ?? [];
   const s = () => overview.summary!;
-  const saved = recall<Tab>("home-tab", "Overview");
+  const saved = recall<string>("home-tab", "Overview") === "Chats" ? "Sessions" : recall<Tab>("home-tab", "Overview");
   const [tab, setTab] = createSignal<Tab>(TABS.includes(saved) ? saved : "Overview");
   const pick = (t: Tab) => {
     setTab(t);
@@ -149,7 +149,21 @@ export function HomePage() {
           <Match when={tab() === "Lately"}>
             <List entries={lately(overview.folders)} meta={(e) => e.last_seen?.slice(0, 10) ?? ""} empty="Nothing seen yet." />
           </Match>
-          <Match when={tab() === "Chats"}>
+          <Match when={tab() === "Chat"}>
+            <p class="lede">Talk to tiny-axe from here. Coming: it will reach your tiny-axe wherever it's running.</p>
+            <div class="chat-box" aria-label="Chat with tiny-axe">
+              <div class="chat-log">
+                <p class="empty">Nothing yet.</p>
+              </div>
+              <form class="chat-send" onSubmit={(e) => e.preventDefault()}>
+                <input type="text" placeholder="Ask tiny-axe…" aria-label="Message" disabled />
+                <button type="submit" class="button" disabled>
+                  Send
+                </button>
+              </form>
+            </div>
+          </Match>
+          <Match when={tab() === "Sessions"}>
             <RecentChats />
           </Match>
           <Match when={tab() === "Sites"}>
@@ -239,7 +253,7 @@ function RecentChats() {
           </For>
         </ul>
         <p class="more">
-          <a href="/chats">All chats ({list.data!.total})</a>
+          <a href="/chats">All sessions ({list.data!.total})</a>
         </p>
       </Match>
     </Switch>
