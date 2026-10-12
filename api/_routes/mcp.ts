@@ -1,3 +1,4 @@
+import { parseReview } from "../_lib/sessions.js";
 import { Hono } from "hono";
 import { addNote, loadVault, MAX_BODY, MAX_NOTES_PER_PUSH, MAX_TITLE, pushChat, pushNotes, Refused } from "../_lib/tinyaxe.js";
 import { overview, search } from "../_lib/vault/views.js";
@@ -165,6 +166,19 @@ const TOOLS: Record<string, Tool> = {
     },
   },
 
+  review_push: {
+    description:
+      "For tiny-axe's chat review: store one chat's review (chat_id, summary, category, concepts, model, decider, " +
+      "reviewed_at) for the session graph. Replaces the stored one.",
+    inputSchema: { type: "object", properties: { review: { type: "object" } }, required: ["review"] },
+    annotations: PUSH,
+    async run({ review }, { owner, deps }) {
+      const parsed = parseReview(review);
+      if (!parsed.ok) throw new Refused(parsed.reason);
+      await deps.store().putReview(owner, parsed.review);
+      return json({ chat_id: parsed.review.chat_id, written: true });
+    },
+  },
   chat_push: {
     description:
       "For tiny-axe's chat history: store one chat, as its history file holds it (version 1). Replaces the stored " +

@@ -119,6 +119,7 @@ describe("/api/mcp", () => {
       "graph_add_note",
       "signin_link",
       "vault_push",
+      "review_push",
       "chat_push",
     ]);
     expect((await rpc("tools/call", { name: "nope" })).body.error.code).toBe(-32602);
@@ -196,6 +197,37 @@ describe("/api/mcp", () => {
     expect((await call("graph_link", { focus: "shop.example" })).text).toBe("http://localhost/note/shop.example");
     expect((await call("graph_link", { page: "chats" })).text).toBe("http://localhost/chats");
     expect((await call("graph_link")).text).toBe("http://localhost/graph");
+  });
+
+  test("review_push and the session graph: sessions linked to their category and concepts", async () => {
+    const { call, view } = await setup();
+    const a = chat();
+    const b = chat({ id: "20261011-160000-beef", title: "find a used Jazz bass" });
+    await call("chat_push", { chat: a });
+    await call("chat_push", { chat: b });
+
+    expect((await call("review_push", { review: { chat_id: a.id, category: "Coding ", concepts: ["Elixir", "ports", "elixir"] } })).json()).toEqual({
+      chat_id: a.id,
+      written: true,
+    });
+    expect((await call("review_push", { review: { chat_id: b.id, category: "shopping", concepts: ["bass guitars", "elixir"], summary: "looked for a bass" } })).json()).toEqual({
+      chat_id: b.id,
+      written: true,
+    });
+    // One without a chat on the site is kept but not drawn; a bad one is refused.
+    await call("review_push", { review: { chat_id: "20261011-170000-dead", category: "other", concepts: [] } });
+    expect((await call("review_push", { review: { chat_id: "nope", category: "x", concepts: [] } })).error).toBe(true);
+
+    const g = (await view("/sessions/graph")).body;
+    expect(g.schema).toBe("tiny-axe-sessions/1");
+    const titles = g.nodes.map((n: any) => `${n.kind}:${n.title}`).sort();
+    expect(titles).toEqual(["category:coding", "category:shopping", "concept:bass guitars", "concept:elixir", "concept:ports", `session:${a.title}`, "session:find a used Jazz bass"].sort());
+    const elixir = g.nodes.find((n: any) => n.id === "concept:elixir");
+    expect(elixir.seen).toBe(2);
+    const edges = g.links.map(([x, y]: [number, number]) => `${g.nodes[x].id}→${g.nodes[y].id}`);
+    expect(edges).toContain(`session:${b.id}→concept:elixir`);
+    expect(edges).toContain(`session:${a.id}→category:coding`);
+    expect(g.nodes.find((n: any) => n.id === `session:${b.id}`).sites).toEqual(["shopping"]);
   });
 
   test("chat_push keeps what the page shows, redacted, never the context", async () => {

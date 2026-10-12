@@ -10,16 +10,16 @@ import { QueryClientProvider } from "@tanstack/solid-query";
 import { createEffect, createSignal, For, Match, on, Show, Switch } from "solid-js";
 import { render } from "solid-js/web";
 import { session, signOut } from "./auth.ts";
-import { ChatPage, ChatsPage } from "./chats.tsx";
+import { ChatPage } from "./chats.tsx";
 import { SignIn } from "./signin.tsx";
 import "./style.css";
-import { GraphPage, warmGraph } from "./graph-page.tsx";
+import { FilterPanel, fitGraph, GraphPage, sessionCounts, setWhich, warmGraph, which } from "./graph-page.tsx";
 import {
   changesQuery,
   forget,
   go,
+  graph,
   loaded,
-  menuOpen,
   overview,
   problem,
   queryClient,
@@ -27,12 +27,10 @@ import {
   remember,
   route,
   ROUTES,
-  setMenuOpen,
   showVault,
-  sorted,
   vaultQuery,
 } from "./store.ts";
-import { HomePage, Item, NotePage, Results } from "./views.tsx";
+import { HomePage, NotePage } from "./views.tsx";
 
 // Dark by default; the switch's choice is remembered in this browser. Set
 // before anything draws, so a light page never starts dark.
@@ -62,11 +60,19 @@ function App() {
     remember("sidebar-open", sideOpen());
   });
 
+  // The graph page has the sidebar (and its bumper); the others a top bar.
+  createEffect(() => {
+    if (route().kind === "graph") document.documentElement.dataset.page = "graph";
+    else delete document.documentElement.dataset.page;
+  });
+
   return (
     <>
-      <Sidebar />
-      <Bumper />
-      <main id="main" tabindex="-1" classList={{ full: route().kind === "graph" }}>
+      <Show when={route().kind === "graph"} fallback={<TopBar />}>
+        <Sidebar />
+        <Bumper />
+      </Show>
+      <main id="main" tabindex="-1" classList={{ full: route().kind === "graph", fixed: route().kind === "home" }}>
         <Show when={problem()} fallback={<Page />}>
           {(message) => <p class="problem">{message()}</p>}
         </Show>
@@ -111,110 +117,89 @@ function Page() {
         <GraphPage />
       </Match>
       <Match when={note()}>{(id) => <NotePage id={id()} />}</Match>
-      <Match when={route().kind === "chats"}>
-        <ChatsPage />
-      </Match>
       <Match when={chat()}>{(id) => <ChatPage id={id()} />}</Match>
     </Switch>
   );
 }
 
+// The graph page's sidebar: the site's header and views, Fit, and the
+// filters. The other pages have the top bar instead.
 function Sidebar() {
-  const [query, setQuery] = createSignal("");
-  let typing: number | undefined;
-  const summary = () => {
-    const s = overview.summary;
-    if (!s) return "";
-    const notes = s.notes ? ` · ${s.notes} notes` : "";
-    return `${s.sites} sites · ${s.pages} pages · ${s.paths} paths (${s.blocked} stopped) · ${s.tools} tools · ${s.tasks} tasks${notes}`;
-  };
-
   return (
-    <aside id="sidebar" classList={{ open: menuOpen() }}>
-      <header class="brand">
-        <a href="/">
-          tiny-axe <span>know-how</span>
-        </a>
-        <span class="brand-tools">
-          <button
-            id="theme"
-            type="button"
-            aria-pressed={theme() === "dark"}
-            title="Switch between dark and light"
-            onClick={() => setTheme(theme() === "dark" ? "light" : "dark")}
-          >
-            Dark
-          </button>
-          <button id="signout" type="button" title="Sign out of this browser" onClick={() => signOut()}>
-            Sign out
-          </button>
-          <button id="menu" type="button" aria-expanded={menuOpen()} aria-controls="tree" onClick={() => setMenuOpen(!menuOpen())}>
-            Notes
-          </button>
-        </span>
-      </header>
-      <nav class="views" aria-label="Views">
-        <a href="/" aria-current={route().kind === "home" ? "page" : undefined}>
-          Home
-        </a>
-        <a href="/graph" aria-current={route().kind === "graph" ? "page" : undefined}>
-          Graph
-        </a>
-        <a href="/chats" aria-current={["chats", "chat"].includes(route().kind) ? "page" : undefined}>
-          Chats
-        </a>
-      </nav>
-      <p id="summary" class="summary">
-        {summary()}
-      </p>
-      <input
-        id="search"
-        type="search"
-        placeholder="Search notes"
-        autocomplete="off"
-        aria-label="Search notes"
-        onInput={(e) => {
-          const q = e.currentTarget.value.trim();
-          clearTimeout(typing);
-          typing = window.setTimeout(() => setQuery(q), 120);
-        }}
-      />
-      <nav id="tree" aria-label="Notes">
-        <Show when={query()} fallback={<Tree />}>
-          {(q) => <Results query={q()} />}
-        </Show>
-      </nav>
+    <aside id="sidebar">
+      <Brand />
+      <Views />
+      <div class="which" role="group" aria-label="Which graph">
+        <button type="button" aria-pressed={which() === "know-how"} onClick={() => setWhich("know-how")}>
+          Know-how
+        </button>
+        <button type="button" aria-pressed={which() === "sessions"} onClick={() => setWhich("sessions")}>
+          Sessions
+        </button>
+      </div>
+      <button type="button" class="fit" title="Bring everything into view" onClick={() => fitGraph()}>
+        Fit
+      </button>
+      <Show when={which() === "sessions"} fallback={<Show when={graph()}>{<FilterPanel always />}</Show>}>
+        <p class="legend-note">Every session, read by tiny-axe's models, linked to its category and the concepts in it.</p>
+        <ul class="legend">
+          <For each={sessionCounts()}>
+            {({ kind, n }) => (
+              <li>
+                <span class={`dot ${kind}`} aria-hidden="true" /> {kind === "session" ? "Sessions" : kind === "category" ? "Categories" : "Concepts"}{" "}
+                <span class="count">{n}</span>
+              </li>
+            )}
+          </For>
+        </ul>
+      </Show>
     </aside>
   );
 }
 
-function Tree() {
-  const open = new Set(recall<string[]>("open-folders", ["Sites"]));
-  const toggled = (name: string, isOpen: boolean) => {
-    if (isOpen) open.add(name);
-    else open.delete(name);
-    remember("open-folders", [...open]);
-  };
+function TopBar() {
   return (
-    <For each={overview.folders}>
-      {(folder) => (
-        <details open={open.has(folder.name)} on:toggle={(e) => toggled(folder.name, e.currentTarget.open)}>
-          <summary>
-            {folder.name}
-            <span class="count">{folder.notes.length}</span>
-          </summary>
-          <ul>
-            <For each={sorted(folder.name, folder.notes)}>
-              {(e) => (
-                <li>
-                  <Item entry={e} />
-                </li>
-              )}
-            </For>
-          </ul>
-        </details>
-      )}
-    </For>
+    <header class="topbar">
+      <Brand />
+      <Views />
+    </header>
+  );
+}
+
+function Brand() {
+  return (
+    <div class="brand">
+      <a href="/">
+        tiny-axe <span>know-how</span>
+      </a>
+      <span class="brand-tools">
+        <button
+          id="theme"
+          type="button"
+          aria-pressed={theme() === "dark"}
+          title="Switch between dark and light"
+          onClick={() => setTheme(theme() === "dark" ? "light" : "dark")}
+        >
+          Dark
+        </button>
+        <button id="signout" type="button" title="Sign out of this browser" onClick={() => signOut()}>
+          Sign out
+        </button>
+      </span>
+    </div>
+  );
+}
+
+function Views() {
+  return (
+    <nav class="views" aria-label="Views">
+      <a href="/" aria-current={route().kind === "home" ? "page" : undefined}>
+        Home
+      </a>
+      <a href="/graph" aria-current={route().kind === "graph" ? "page" : undefined}>
+        Graph
+      </a>
+    </nav>
   );
 }
 

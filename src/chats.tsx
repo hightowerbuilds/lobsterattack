@@ -1,5 +1,5 @@
-// The chat history: every chat by the launch of tiny-axe it started in,
-// searchable, and one chat as it was shown. Both fetch again when tiny-axe
+// The chat history: every session by the launch of tiny-axe it started in,
+// searchable (the home page's Sessions tab), and one chat as it was shown. Both fetch again when tiny-axe
 // writes a chat (the server's `history` event), into stores, so rows and
 // messages already on the page stay put, and so do the scroll and the
 // search. Text from chats always goes in as text; the only HTML inserted is
@@ -13,7 +13,6 @@ import { chatHref, chatQuery, chatsQuery, type ChatDetail, type ChatList } from 
 const [query, setQuery] = createSignal("");
 
 export function ChatsPage() {
-  document.title = "Chats · tiny-axe know-how";
   let typing: number | undefined;
   const list = chatsQuery(query);
   const [shown, setShown] = createStore<ChatList>({ total: 0, sessions: [] });
@@ -27,10 +26,9 @@ export function ChatsPage() {
 
   return (
     <div class="chats">
-      <h1>Chats</h1>
       <p class="lede">
-        Every chat with tiny-axe, by the launch it started in, newest first. Keys, tokens and card numbers are taken out
-        before a chat is kept.
+        Every session with tiny-axe, by the launch it started in, newest first. Keys, tokens and card numbers are taken
+        out before a session is kept.
       </p>
       <input
         id="chat-search"
@@ -48,10 +46,10 @@ export function ChatsPage() {
       <Switch>
         <Match when={list.error}>{(error) => <p class="problem">{(error() as Error).message}</p>}</Match>
         <Match when={loaded() && shown.total === 0}>
-          <p class="empty">No chats yet. tiny-axe keeps a chat here once you've sent it a message.</p>
+          <p class="empty">No sessions yet. tiny-axe keeps one here once you've sent it a message.</p>
         </Match>
         <Match when={loaded() && shown.sessions.length === 0}>
-          <p class="empty">No chat has all of those words.</p>
+          <p class="empty">No session has all of those words.</p>
         </Match>
       </Switch>
       <For each={shown.sessions}>

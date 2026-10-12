@@ -6,7 +6,9 @@
 import { createEffect, createMemo, createRoot, createSignal, For, on, onMount, Show, type JSX } from "solid-js";
 import { choices, isFiltered, neighbourhood, NO_FILTERS, visibleMask, type Filters } from "./filter.ts";
 import { GraphView } from "./graph.ts";
-import { changes, go, graph, href, noteHref, recall, remember, route } from "./store.ts";
+import type { GraphData } from "../api/_lib/vault/graph.ts";
+import { changes, chatHref, go, graph, href, noteHref, recall, remember, route, sessionsQuery } from "./store.ts";
+import { unwrap } from "solid-js/store";
 
 const KINDS: Record<string, string> = {
   site: "Sites",
@@ -17,7 +19,20 @@ const KINDS: Record<string, string> = {
   task: "Tasks",
   workflow: "Workflows",
   note: "Notes",
+  session: "Sessions",
+  category: "Categories",
+  concept: "Concepts",
 };
+
+/** Which graph the page shows: the know-how graph, or the session graph
+ * (docs/plan-session-graph.md). Remembered in this browser. */
+export type Which = "know-how" | "sessions";
+const [which, setWhichTo] = createSignal<Which>(recall<string>("graph-which", "know-how") === "sessions" ? "sessions" : "know-how");
+export { which };
+export function setWhich(next: Which) {
+  setWhichTo(next);
+  remember("graph-which", next);
+}
 const TRUST = ["observed", "verified", "validated"];
 
 const [filters, setFilters] = createSignal<Filters>({ ...NO_FILTERS, ...recall<Partial<Filters>>("graph-filters", {}) });
@@ -26,6 +41,9 @@ const [depth, setDepth] = createSignal(Math.min(3, Math.max(1, recall<number>("l
 
 let globalView: GraphView | null = null;
 let localView: GraphView | null = null;
+let sessionsView: GraphView | null = null;
+/** The session graph's data, as its query last had it. */
+const [sessionsData, setSessionsData] = createSignal<GraphData | undefined>();
 
 
 // What the filters leave showing, of the whole graph.
@@ -39,6 +57,8 @@ const mask = createMemo(() => {
  * shows it in place. It draws nothing until it's attached. */
 export function warmGraph(): GraphView {
   if (globalView) return globalView;
+  // The session graph lays itself out from sign-in too.
+  queueMicrotask(() => warmSessions());
   const view = (globalView = new GraphView({
     label: "A graph of every note and its links. The sidebar lists the same notes.",
     background: "--bg",
@@ -60,23 +80,65 @@ export function warmGraph(): GraphView {
   return view;
 }
 
+/** The session graph's view, fed from its query. */
+function warmSessions(): GraphView {
+  if (sessionsView) return sessionsView;
+  const view = (sessionsView = new GraphView({
+    label: "A graph of every session, its category and the concepts in it.",
+    background: "--bg",
+    open: (id) => id.startsWith("session:") && go(chatHref(id.slice("session:".length))),
+    status: setMoving,
+  }));
+  createRoot(() => {
+    const q = sessionsQuery();
+    createEffect(() => {
+      const g = q.data;
+      setSessionsData(g);
+      if (!g) return;
+      const plain = unwrap(g);
+      view.setData(plain.nodes, plain.links);
+      view.setVisible(new Uint8Array(plain.nodes.length).fill(1));
+    });
+  });
+  return view;
+}
+
+/** The nodes of the session graph, by kind, for the sidebar's legend. */
+export function sessionCounts(): { kind: string; n: number }[] {
+  const g = sessionsData();
+  if (!g) return [];
+  const counts = new Map<string, number>();
+  for (const n of g.nodes) counts.set(n.kind, (counts.get(n.kind) ?? 0) + 1);
+  return ["session", "category", "concept"].map((kind) => ({ kind, n: counts.get(kind) ?? 0 }));
+}
 export function GraphPage() {
-  const view = warmGraph();
+  const view = () => (which() === "sessions" ? warmSessions() : warmGraph());
   document.title = "tiny-axe know-how";
 
   let holder!: HTMLDivElement;
-  onMount(() => view.attach(holder));
+  // The chosen graph's view is attached; the other is taken out (its layout
+  // keeps running in its worker).
+  createEffect(() => {
+    const v = view();
+    holder.replaceChildren();
+    v.attach(holder);
+  });
   // Arriving at /?focus=ID flies to that note; new data never moves the camera.
   createEffect(
     on(href, () => {
       const r = route();
-      if (r.kind !== "graph") return;
-      if (r.focus) view.focus(r.focus);
-      else view.setSelected(null);
+      if (r.kind !== "graph" || which() !== "know-how") return;
+      if (r.focus) view().focus(r.focus);
+      else view().setSelected(null);
     }),
   );
 
   const status = () => {
+    if (which() === "sessions") {
+      const g = sessionsData();
+      if (!g) return "no sessions reviewed yet";
+      return `${g.nodes.filter((n) => n.kind === "session").length} sessions · ${g.links.length} links${moving() ? " · laying out…" : ""}`;
+    }
     const g = graph();
     if (!g) return "";
     const m = mask();
@@ -89,16 +151,6 @@ export function GraphPage() {
   return (
     <section class="graph-page" aria-label="Graph">
       <div class="graph-holder" ref={holder} />
-      <div class="graph-tools">
-        <div class="row">
-          <button type="button" class="fit" title="Bring every note into view" onClick={() => view.fit(true)}>
-            Fit
-          </button>
-        </div>
-        <Show when={graph()}>
-          <FilterPanel />
-        </Show>
-      </div>
       <p class="graph-status" aria-live="polite">
         {status()}
       </p>
@@ -108,7 +160,12 @@ export function GraphPage() {
 
 // The filters. Every control shows the current filters, so clearing them or
 // new notes arriving never rebuilds the panel or moves focus.
-function FilterPanel() {
+/** Brings every note of the global graph into view. */
+export function fitGraph() {
+  (which() === "sessions" ? sessionsView : globalView)?.fit(true);
+}
+
+export function FilterPanel(props: { always?: boolean }) {
   const c = createMemo(() => choices(graph()!));
   const count = (kind: string) => graph()!.nodes.filter((n) => n.kind === kind).length;
   const change = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
@@ -116,7 +173,12 @@ function FilterPanel() {
     setFilters((f) => ({ ...f, [list]: on ? f[list].filter((v) => v !== value) : [...f[list], value] }));
 
   return (
-    <details class="filters" open={recall("filters-open", false)} on:toggle={(e) => remember("filters-open", e.currentTarget.open)}>
+    <details
+      class="filters"
+      classList={{ always: props.always }}
+      open={props.always || recall("filters-open", false)}
+      on:toggle={(e) => !props.always && remember("filters-open", e.currentTarget.open)}
+    >
       <summary>
         Filters <span class="on">{isFiltered(filters()) ? "on" : ""}</span>
       </summary>
