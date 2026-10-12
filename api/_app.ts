@@ -4,6 +4,8 @@ import { requestLogger } from "./_middleware/logger.js";
 import { rateLimit } from "./_middleware/rateLimit.js";
 import health from "./_routes/health.js";
 import { tinyAxeApi } from "./_routes/tinyaxe.js";
+import { accountsApi } from "./_routes/accounts.js";
+import { supabaseAccounts } from "./_lib/supabaseAccounts.js";
 import { supabase } from "./_lib/supabase.js";
 import { supabaseStore, type Store } from "./_lib/store.js";
 import type { ApiEnv } from "./types.js";
@@ -24,10 +26,15 @@ app.route("/health", health);
 
 // tiny-axe's home: /api/mcp for tiny-axe, and what the site's pages read.
 let store: Store | undefined;
+const theStore = () => (store ??= supabaseStore(supabase));
+
+// Accounts, made from tiny-axe when it first opens.
+app.route("/", accountsApi({ store: theStore, accounts: () => supabaseAccounts(supabase) }));
+
 app.route(
   "/",
   tinyAxeApi({
-    store: () => (store ??= supabaseStore(supabase)),
+    store: theStore,
     async verifyViewer(token) {
       const { data, error } = await supabase.auth.getUser(token);
       return error ? null : (data.user?.id ?? null);

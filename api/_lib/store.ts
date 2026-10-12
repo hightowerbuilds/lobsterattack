@@ -53,6 +53,14 @@ export interface Store {
   putChat(owner: string, chat: StoredChat): Promise<void>;
   changes(owner: string): Promise<Changes>;
   changedSince(owner: string, since: string, limit: number): Promise<Changed>;
+
+  // Accounts (POST /api/signup, /api/device)
+  usernameTaken(username: string): Promise<boolean>;
+  /** Records an account's username; false if someone has it already. */
+  addAccount(userId: string, username: string): Promise<boolean>;
+  addMember(userId: string, owner: string, role: "owner" | "viewer"): Promise<void>;
+  /** Stores a key's SHA-256 for an owner; the key's id. */
+  addKey(owner: string, keyHash: string, label: string): Promise<string>;
 }
 
 // PostgREST gives at most 1,000 rows per request.
@@ -216,6 +224,37 @@ export function supabaseStore(db: SupabaseClient): Store {
       const [notes, chats] = await Promise.all([ids("buster_ta_notes"), ids("buster_ta_chats")]);
       return { notes, chats };
     },
+
+    async usernameTaken(username) {
+      const { data, error } = await db.from("buster_ta_accounts").select("user_id").eq("username", username).maybeSingle();
+      if (error) throw new Error(error.message);
+      return data !== null;
+    },
+
+    async addAccount(userId, username) {
+      const { error } = await db.from("buster_ta_accounts").insert({ user_id: userId, username });
+      // 23505: the username (or the user) is already there.
+      if (error?.code === "23505") return false;
+      if (error) throw new Error(error.message);
+      return true;
+    },
+
+    async addMember(userId, owner, role) {
+      const { error } = await db
+        .from("buster_ta_members")
+        .upsert({ user_id: userId, owner_id: owner, role }, { onConflict: "user_id" });
+      if (error) throw new Error(error.message);
+    },
+
+    async addKey(owner, keyHash, label) {
+      const { data, error } = await db
+        .from("buster_ta_keys")
+        .insert({ owner_id: owner, key_hash: keyHash, label })
+        .select("id")
+        .single();
+      if (error) throw new Error(error.message);
+      return data.id;
+    },
   };
 }
 
@@ -226,6 +265,7 @@ export function memoryStore(seed: {
 } = {}): Store & { notesWritten: number } {
   const keys = new Map(Object.entries(seed.keys ?? {}));
   const members = new Map(Object.entries(seed.members ?? {}));
+  const usernames = new Map<string, string>();
   const manifests = new Map<string, Record<string, unknown>>();
   const notes = new Map<string, Map<string, StoredNote & { at: string }>>();
   const chats = new Map<string, Map<string, StoredChat & { at: string }>>();
@@ -266,6 +306,17 @@ export function memoryStore(seed: {
       notes: [...of(notes, owner).values()].filter((n) => n.at > since).slice(0, limit).map((n) => n.id),
       chats: [...of(chats, owner).values()].filter((c) => c.at > since).slice(0, limit).map((c) => c.id),
     }),
+    usernameTaken: async (username: string) => usernames.has(username),
+    addAccount: async (userId: string, username: string) => {
+      if (usernames.has(username)) return false;
+      usernames.set(username, userId);
+      return true;
+    },
+    addMember: async (userId: string, owner: string) => void members.set(userId, owner),
+    addKey: async (owner: string, keyHash: string) => {
+      keys.set(keyHash, owner);
+      return `key-${keys.size}`;
+    },
   };
   return store;
 }

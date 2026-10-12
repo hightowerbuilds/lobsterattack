@@ -14,16 +14,12 @@
 //   bun scripts/tinyaxe-key.ts list <owner username>
 //   bun scripts/tinyaxe-key.ts revoke <key id>
 //
-// People sign in with a username; Supabase Auth needs an email, so a
-// username stands for <username>@users.tiny-axe.invalid (src/auth.ts), a
-// domain that can never take mail.
+// tiny-axe makes accounts itself when it first opens (POST /api/signup);
+// this is for the site's operator. Usernames follow api/_lib/accounts.ts.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { emailFor as accountEmail, normalize, passwordProblem } from "../api/_lib/accounts.js";
 import { sha256 } from "../api/_lib/tinyaxe.js";
-
-const USERNAME = /^[a-z0-9][a-z0-9._-]{1,31}$/;
-const DOMAIN = "users.tiny-axe.invalid";
-const MIN_PASSWORD = 12;
 
 const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -34,9 +30,10 @@ function fail(message: string): never {
 }
 
 function emailFor(username: string): string {
-  const name = username.trim().toLowerCase();
-  if (!USERNAME.test(name)) fail(`"${username}" isn't a username: 2–32 letters, digits, ".", "_" or "-", starting with a letter or digit`);
-  return `${name}@${DOMAIN}`;
+  return (
+    accountEmail(username) ??
+    fail(`"${username}" isn't a username: 2–32 letters, digits, ".", "_" or "-", starting with a letter or digit`)
+  );
 }
 
 async function userId(db: SupabaseClient, username: string): Promise<string | null> {
@@ -84,7 +81,8 @@ async function secret(prompt: string): Promise<string> {
 
 async function newPassword(): Promise<string> {
   const first = await secret("Password: ");
-  if (first.length < MIN_PASSWORD) fail(`a password needs at least ${MIN_PASSWORD} characters`);
+  const weak = passwordProblem(first);
+  if (weak) fail(weak);
   if (process.stdin.isTTY && (await secret("Again: ")) !== first) fail("the two didn't match");
   return first;
 }
@@ -114,9 +112,14 @@ async function main() {
         email,
         password: await newPassword(),
         email_confirm: true,
-        user_metadata: { username: username.toLowerCase() },
+        user_metadata: { username: normalize(username) },
       });
       if (error) fail(`couldn't make ${username}: ${error.message}`);
+      const named = await db.from("buster_ta_accounts").insert({ user_id: data.user.id, username: normalize(username) });
+      if (named.error) {
+        await db.auth.admin.deleteUser(data.user.id);
+        fail(`couldn't record the username (${named.error.message}); nothing was made`);
+      }
       await letIn(db, data.user.id, owner ?? data.user.id);
       console.error(ownerName ? `${username} can sign in and see ${ownerName}'s site.` : `${username} can sign in to their own site.`);
       break;
