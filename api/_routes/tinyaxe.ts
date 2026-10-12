@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { Accounts } from "../_lib/accounts.js";
 import type { Store } from "../_lib/store.js";
+import { sessionGraph } from "../_lib/sessions.js";
 import { loadChat, loadChats, loadVault, sha256 } from "../_lib/tinyaxe.js";
 import { chatDetail, chatList, detail, graphView, overview, rendererFor, search } from "../_lib/vault/views.js";
 import { mcp } from "./mcp.js";
@@ -71,6 +72,14 @@ export function tinyAxeApi(deps: Deps) {
   api.get("/chats", viewer, async (c) =>
     c.json(chatList(await loadChats(deps.store(), c.get("owner")), c.req.query("q") ?? "")),
   );
+
+  // The session graph: reviewed chats, their categories and concepts.
+  api.get("/sessions/graph", viewer, async (c) => {
+    const store = deps.store();
+    const owner = c.get("owner");
+    const [chats, reviews] = await Promise.all([store.chatHeads(owner), store.reviews(owner)]);
+    return c.json(sessionGraph(chats, reviews));
+  });
 
   api.get("/chat", viewer, async (c) => {
     const chat = await loadChat(deps.store(), c.get("owner"), c.req.query("id") ?? "");

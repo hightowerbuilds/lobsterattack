@@ -18,6 +18,10 @@
   --tool: #c98ad8;
   --task: #9aa0aa;
   --note: #a8c450;
+  /* The session graph */
+  --session: #f5a34e;
+  --category: #7ed373;
+  --concept: #5fa8e6;
 
   /* Trust and the gate */
   --observed: #8c9099;
@@ -219,6 +223,17 @@ button[aria-pressed="true"] { background: var(--raised); border-color: var(--acc
 .dot.tool { background: var(--tool); }
 .dot.task { background: var(--task); }
 .dot.note { background: var(--note); }
+.dot.session { background: var(--session); }
+.dot.category { background: var(--category); }
+.dot.concept { background: var(--concept); }
+.which { display: flex; margin: 8px 0 0; }
+.which button { flex: 1; }
+.which button:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.which button:last-child { border-radius: 0 var(--radius) var(--radius) 0; margin-left: -1px; }
+.legend { list-style: none; margin: 0; padding: 0; }
+.legend li { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.legend .count { color: var(--faint); }
+.legend-note { color: var(--muted); font-size: 13px; margin: 0 0 10px; }
 .dot.verified { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3px var(--verified); }
 .dot.validated { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3px var(--validated); }
 .dot.blocked { background: var(--blocked); }

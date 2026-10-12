@@ -25,6 +25,17 @@ export interface StoredChat {
   hash: string;
 }
 
+/** A chat's review (docs/plan-session-graph.md). */
+export interface Review {
+  chat_id: string;
+  summary: string;
+  category: string;
+  concepts: string[];
+  model: string | null;
+  decider: string | null;
+  reviewed_at: string;
+}
+
 export interface Changes {
   /** When a note or a chat was last written, ISO 8601; null for none yet. */
   notes: string | null;
@@ -51,6 +62,10 @@ export interface Store {
   chat(owner: string, id: string): Promise<unknown | null>;
   chatHash(owner: string, id: string): Promise<string | null>;
   putChat(owner: string, chat: StoredChat): Promise<void>;
+  /** Every chat's id, title and times, for the session graph. */
+  chatHeads(owner: string): Promise<{ id: string; title: string; started: string; updated: string }[]>;
+  reviews(owner: string): Promise<Review[]>;
+  putReview(owner: string, review: Review): Promise<void>;
   changes(owner: string): Promise<Changes>;
   changedSince(owner: string, since: string, limit: number): Promise<Changed>;
 
@@ -205,6 +220,26 @@ export function supabaseStore(db: SupabaseClient): Store {
       if (error) throw new Error(error.message);
     },
 
+    async chatHeads(owner) {
+      return every<{ id: string; title: string; started: string; updated: string }>((from, to) =>
+        db.from("buster_ta_chats").select("id,title,started,updated").eq("owner_id", owner).order("id").range(from, to),
+      );
+    },
+
+    async reviews(owner) {
+      const rows = await every<Review & { owner_id: string; updated_at: string }>((from, to) =>
+        db.from("buster_ta_reviews").select("*").eq("owner_id", owner).order("chat_id").range(from, to),
+      );
+      return rows.map(({ owner_id: _o, updated_at: _u, ...r }) => ({ ...r, concepts: Array.isArray(r.concepts) ? r.concepts : [] }));
+    },
+
+    async putReview(owner, review) {
+      const { error } = await db
+        .from("buster_ta_reviews")
+        .upsert({ owner_id: owner, ...review, updated_at: new Date().toISOString() }, { onConflict: "owner_id,chat_id" });
+      if (error) throw new Error(error.message);
+    },
+
     async changes(owner) {
       const [notes, chats] = await Promise.all([latest("buster_ta_notes", owner), latest("buster_ta_chats", owner)]);
       return { notes, chats };
@@ -269,6 +304,7 @@ export function memoryStore(seed: {
   const manifests = new Map<string, Record<string, unknown>>();
   const notes = new Map<string, Map<string, StoredNote & { at: string }>>();
   const chats = new Map<string, Map<string, StoredChat & { at: string }>>();
+  const reviews = new Map<string, Map<string, Review>>();
   const of = <T>(m: Map<string, Map<string, T>>, owner: string) => {
     if (!m.has(owner)) m.set(owner, new Map());
     return m.get(owner)!;
@@ -298,6 +334,9 @@ export function memoryStore(seed: {
     chat: async (owner: string, id: string) => of(chats, owner).get(id)?.doc ?? null,
     chatHash: async (owner: string, id: string) => of(chats, owner).get(id)?.hash ?? null,
     putChat: async (owner: string, chat: StoredChat) => void of(chats, owner).set(chat.id, { ...chat, at: now() }),
+    chatHeads: async (owner: string) => [...of(chats, owner).values()].map(({ id, title, started, updated }) => ({ id, title, started, updated })),
+    reviews: async (owner: string) => [...of(reviews, owner).values()],
+    putReview: async (owner: string, review: Review) => void of(reviews, owner).set(review.chat_id, review),
     changes: async (owner: string) => ({
       notes: newest(of(notes, owner).values()),
       chats: newest(of(chats, owner).values()),

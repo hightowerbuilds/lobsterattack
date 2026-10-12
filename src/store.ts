@@ -130,6 +130,13 @@ export const vaultQuery = () =>
     },
   }));
 
+/** The session graph: reviewed chats, their categories and concepts. */
+export const sessionsQuery = () =>
+  useQuery(() => ({
+    queryKey: ["sessions"],
+    queryFn: () => get<GraphData>("/api/sessions/graph"),
+  }));
+
 export const noteQuery = (id: () => string) =>
   useQuery(() => ({
     queryKey: ["note", id()],
@@ -264,6 +271,7 @@ export const [chatChanges, setChatChanges] = createSignal<{ ids: string[]; versi
 export function chatsChanged(ids: string[]) {
   setChatChanges((c) => ({ ids, version: c.version + 1 }));
   queryClient.invalidateQueries({ queryKey: ["chats"] });
+  queryClient.invalidateQueries({ queryKey: ["sessions"] });
   queryClient.invalidateQueries({
     queryKey: ["chat"],
     predicate: (q) => ids.length === 0 || ids.includes(q.queryKey[1] as string),

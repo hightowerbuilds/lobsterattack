@@ -7,13 +7,13 @@
 // you're reading, typing or filtering stays as it is.
 
 import { QueryClientProvider } from "@tanstack/solid-query";
-import { createEffect, createSignal, Match, on, Show, Switch } from "solid-js";
+import { createEffect, createSignal, For, Match, on, Show, Switch } from "solid-js";
 import { render } from "solid-js/web";
 import { session, signOut } from "./auth.ts";
 import { ChatPage } from "./chats.tsx";
 import { SignIn } from "./signin.tsx";
 import "./style.css";
-import { FilterPanel, fitGraph, GraphPage, warmGraph } from "./graph-page.tsx";
+import { FilterPanel, fitGraph, GraphPage, sessionCounts, setWhich, warmGraph, which } from "./graph-page.tsx";
 import {
   changesQuery,
   forget,
@@ -129,11 +129,29 @@ function Sidebar() {
     <aside id="sidebar">
       <Brand />
       <Views />
-      <button type="button" class="fit" title="Bring every note into view" onClick={() => fitGraph()}>
+      <div class="which" role="group" aria-label="Which graph">
+        <button type="button" aria-pressed={which() === "know-how"} onClick={() => setWhich("know-how")}>
+          Know-how
+        </button>
+        <button type="button" aria-pressed={which() === "sessions"} onClick={() => setWhich("sessions")}>
+          Sessions
+        </button>
+      </div>
+      <button type="button" class="fit" title="Bring everything into view" onClick={() => fitGraph()}>
         Fit
       </button>
-      <Show when={graph()}>
-        <FilterPanel always />
+      <Show when={which() === "sessions"} fallback={<Show when={graph()}>{<FilterPanel always />}</Show>}>
+        <p class="legend-note">Every session, read by tiny-axe's models, linked to its category and the concepts in it.</p>
+        <ul class="legend">
+          <For each={sessionCounts()}>
+            {({ kind, n }) => (
+              <li>
+                <span class={`dot ${kind}`} aria-hidden="true" /> {kind === "session" ? "Sessions" : kind === "category" ? "Categories" : "Concepts"}{" "}
+                <span class="count">{n}</span>
+              </li>
+            )}
+          </For>
+        </ul>
       </Show>
     </aside>
   );
