@@ -715,7 +715,10 @@ export class GraphView {
     if (!any) return this.current();
     const centre = min.clone().add(max).multiplyScalar(0.5);
     const size = max.clone().sub(min);
-    return this.viewAt(centre, Math.max(size.x, size.y, this.dims === 3 ? size.z : 0) / 2 + 30, size);
+    // In 3D the camera can look from any side, so fit the sphere round the
+    // whole box (its half diagonal), not just its widest side.
+    const reach = this.dims === 3 ? size.length() / 2 + 60 : Math.max(size.x, size.y) / 2 + 30;
+    return this.viewAt(centre, reach, size);
   }
 
   // Close in on one note, with room for its neighbours.
@@ -733,7 +736,7 @@ export class GraphView {
     }
     const fov = (this.perspective.fov * Math.PI) / 180;
     const fit = Math.min(fov, 2 * Math.atan(Math.tan(fov / 2) * this.perspective.aspect));
-    const distance = reach / Math.sin(fit / 2);
+    const distance = Math.max(reach / Math.sin(fit / 2), 200);
     const away = this.camera.position.clone().sub(this.controls.target);
     if (away.lengthSq() < 1e-6) away.set(0, 0, 1);
     return { target: centre.clone(), position: centre.clone().add(away.normalize().multiplyScalar(distance)), zoom: 1 };
