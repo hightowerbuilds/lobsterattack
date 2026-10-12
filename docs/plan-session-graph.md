@@ -1,6 +1,6 @@
 # Plan: the session graph (chats, read by Gemma and Jev, as a graph)
 
-Status (2026-10-12): drafted, not started.
+Status (2026-10-12): S1 live (the site's side, seeded from titles); S2 built in tiny-axe (`TinyAxe.Review`, `/review`, pushed by `Sync`); S3 next.
 
 ## What the user asked for
 
