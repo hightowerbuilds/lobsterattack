@@ -14,6 +14,8 @@ import {
   noteQuery,
   ORDER,
   overview,
+  recall,
+  remember,
   route,
   searchQuery,
   sorted,
@@ -92,53 +94,86 @@ function List(props: { entries: Entry[]; meta: (e: Entry) => string; empty: stri
 
 /** The home page: what tiny-axe knows, in numbers and lists, and the one
  * link to the graph (which lays itself out meanwhile). */
+const TABS = ["Overview", "Lately", "Chats", "Sites", "Tasks", "Gate", "Folders", "Search"] as const;
+type Tab = (typeof TABS)[number];
+
+/** The home page: what tiny-axe knows, one tab at a time, filling the
+ * window without scrolling it (a long tab scrolls within itself). The tab
+ * is remembered in this browser. The graph lays itself out meanwhile. */
 export function HomePage() {
   document.title = "tiny-axe know-how";
   const notes = (folder: string) => overview.folders.find((f) => f.name === folder)?.notes ?? [];
   const s = () => overview.summary!;
+  const saved = recall<Tab>("home-tab", "Overview");
+  const [tab, setTab] = createSignal<Tab>(TABS.includes(saved) ? saved : "Overview");
+  const pick = (t: Tab) => {
+    setTab(t);
+    remember("home-tab", t);
+  };
 
   return (
     <div class="home">
-      <h1>What tiny-axe knows</h1>
-      <p class="lede">Every site, page and decision path tiny-axe has used on the web, from its own records.</p>
-      <div class="graph-card">
+      <header class="home-head">
+        <h1>What tiny-axe knows</h1>
         <a class="button open-graph" href="/graph">
           Open the graph
         </a>
-        <Show when={overview.summary}>
-          <span class="graph-count">
-            {s().sites + s().pages + s().controls + s().paths + s().tools + s().tasks + s().notes} notes in the graph
-          </span>
-        </Show>
+      </header>
+      <div class="tabs" role="tablist" aria-label="Home">
+        <For each={TABS}>
+          {(t) => (
+            <button type="button" role="tab" aria-selected={tab() === t} onClick={() => pick(t)}>
+              {t}
+            </button>
+          )}
+        </For>
       </div>
-      <h2>Search</h2>
-      <SearchBox />
-      <Show when={overview.summary}>
-        <div class="tiles">
-          <Tile n={s().sites} what="sites" />
-          <Tile n={s().pages} what="pages" />
-          <Tile n={s().paths} what="decision paths" sub={s().blocked ? `${s().blocked} stopped by the gate` : undefined} />
-          <Tile n={s().tools} what="tools" />
-          <Tile n={s().tasks} what="tasks" />
-          <Tile n={s().notes} what="notes" sub="written by the model" />
-        </div>
-      </Show>
-      <h2>Lately</h2>
-      <List entries={lately(overview.folders)} meta={(e) => e.last_seen?.slice(0, 10) ?? ""} empty="Nothing seen yet." />
-      <h2>Recent chats</h2>
-      <RecentChats />
-      <h2>Sites</h2>
-      <List entries={[...notes("Sites")].sort((a, b) => (b.seen ?? 0) - (a.seen ?? 0))} meta={(e) => `${e.seen ?? 0} actions`} empty="No sites yet." />
-      <h2>Recent tasks</h2>
-      <List entries={[...notes("Tasks")].sort(ORDER.Tasks).slice(0, 10)} meta={(e) => e.last_seen?.slice(0, 10) ?? ""} empty="No tasks yet." />
-      <Show when={notes("Notes").length > 0}>
-        <h2>Notes</h2>
-        <List entries={[...notes("Notes")].sort(byTitle)} meta={() => "by the model"} empty="" />
-      </Show>
-      <h2>Where the gate stopped it</h2>
-      <List entries={notes("Paths").filter(blocked).sort(byTitle)} meta={(e) => e.gate ?? ""} empty="Nothing stopped yet." />
-      <h2>Every folder</h2>
-      <Folders />
+      <div class="home-pane" role="tabpanel">
+        <Switch>
+          <Match when={tab() === "Overview"}>
+            <p class="lede">Every site, page and decision path tiny-axe has used on the web, from its own records.</p>
+            <Show when={overview.summary}>
+              <div class="tiles">
+                <Tile n={s().sites} what="sites" />
+                <Tile n={s().pages} what="pages" />
+                <Tile n={s().paths} what="decision paths" sub={s().blocked ? `${s().blocked} stopped by the gate` : undefined} />
+                <Tile n={s().tools} what="tools" />
+                <Tile n={s().tasks} what="tasks" />
+                <Tile n={s().notes} what="notes" sub="written by the model" />
+              </div>
+              <p class="lede">
+                {s().sites + s().pages + s().controls + s().paths + s().tools + s().tasks + s().notes} notes in the graph.
+              </p>
+            </Show>
+          </Match>
+          <Match when={tab() === "Lately"}>
+            <List entries={lately(overview.folders)} meta={(e) => e.last_seen?.slice(0, 10) ?? ""} empty="Nothing seen yet." />
+          </Match>
+          <Match when={tab() === "Chats"}>
+            <RecentChats />
+          </Match>
+          <Match when={tab() === "Sites"}>
+            <List entries={[...notes("Sites")].sort((a, b) => (b.seen ?? 0) - (a.seen ?? 0))} meta={(e) => `${e.seen ?? 0} actions`} empty="No sites yet." />
+          </Match>
+          <Match when={tab() === "Tasks"}>
+            <List entries={[...notes("Tasks")].sort(ORDER.Tasks)} meta={(e) => e.last_seen?.slice(0, 10) ?? ""} empty="No tasks yet." />
+            <Show when={notes("Notes").length > 0}>
+              <h2>Notes</h2>
+              <List entries={[...notes("Notes")].sort(byTitle)} meta={() => "by the model"} empty="" />
+            </Show>
+          </Match>
+          <Match when={tab() === "Gate"}>
+            <p class="lede">Where the gate stopped tiny-axe.</p>
+            <List entries={notes("Paths").filter(blocked).sort(byTitle)} meta={(e) => e.gate ?? ""} empty="Nothing stopped yet." />
+          </Match>
+          <Match when={tab() === "Folders"}>
+            <Folders />
+          </Match>
+          <Match when={tab() === "Search"}>
+            <SearchBox />
+          </Match>
+        </Switch>
+      </div>
     </div>
   );
 }
@@ -149,7 +184,7 @@ function lately(folders: { name: string; notes: Entry[] }[]) {
     .flatMap((f) => f.notes)
     .filter((e) => e.last_seen)
     .sort((a, b) => (a.last_seen! < b.last_seen! ? 1 : -1))
-    .slice(0, 8);
+    .slice(0, 30);
 }
 
 // A search box with its results under it (the sidebar has the same).
@@ -181,7 +216,7 @@ function RecentChats() {
     (list.data?.sessions ?? [])
       .flatMap((s) => s.chats)
       .sort((a, b) => (a.updated < b.updated ? 1 : -1))
-      .slice(0, 6);
+      .slice(0, 20);
   return (
     <Switch>
       <Match when={list.error}>{(error) => <p class="problem">{error().message}</p>}</Match>

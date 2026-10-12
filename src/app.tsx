@@ -66,7 +66,7 @@ function App() {
     <>
       <Sidebar />
       <Bumper />
-      <main id="main" tabindex="-1" classList={{ full: route().kind === "graph" }}>
+      <main id="main" tabindex="-1" classList={{ full: route().kind === "graph", fixed: route().kind === "home" }}>
         <Show when={problem()} fallback={<Page />}>
           {(message) => <p class="problem">{message()}</p>}
         </Show>
