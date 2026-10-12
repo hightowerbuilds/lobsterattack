@@ -94,7 +94,7 @@ function List(props: { entries: Entry[]; meta: (e: Entry) => string; empty: stri
 
 /** The home page: what tiny-axe knows, in numbers and lists, and the one
  * link to the graph (which lays itself out meanwhile). */
-const TABS = ["Chat", "Overview", "Sessions", "Lately", "Sites", "Tasks", "Gate", "Folders", "Search"] as const;
+const TABS = ["Chat", "Overview", "Sessions", "Sites", "Tasks", "Gate", "Folders", "Search"] as const;
 type Tab = (typeof TABS)[number];
 
 /** The home page: what tiny-axe knows, one tab at a time, filling the
@@ -104,7 +104,8 @@ export function HomePage() {
   document.title = "tiny-axe know-how";
   const notes = (folder: string) => overview.folders.find((f) => f.name === folder)?.notes ?? [];
   const s = () => overview.summary!;
-  const saved = recall<string>("home-tab", "Chat") === "Chats" ? "Sessions" : recall<Tab>("home-tab", "Chat");
+  const was = recall<string>("home-tab", "Chat");
+  const saved = (was === "Chats" ? "Sessions" : was === "Lately" ? "Overview" : was) as Tab;
   const [tab, setTab] = createSignal<Tab>(TABS.includes(saved) ? saved : "Chat");
   const pick = (t: Tab) => {
     setTab(t);
@@ -145,8 +146,7 @@ export function HomePage() {
                 {s().sites + s().pages + s().controls + s().paths + s().tools + s().tasks + s().notes} notes in the graph.
               </p>
             </Show>
-          </Match>
-          <Match when={tab() === "Lately"}>
+            <h2>Lately</h2>
             <List entries={lately(overview.folders)} meta={(e) => e.last_seen?.slice(0, 10) ?? ""} empty="Nothing seen yet." />
           </Match>
           <Match when={tab() === "Chat"}>
