@@ -530,7 +530,7 @@ export class GraphView {
   // Size by use: how often a note was seen, or how many links it has.
   private sizes() {
     this.radius = Float32Array.from(this.nodes, (n, i) =>
-      Math.min(18, 3 + 2.2 * Math.log1p(n.seen ?? this.neighbours[i].length)),
+      Math.min(22, 5 + 2.6 * Math.log1p(n.seen ?? this.neighbours[i].length)),
     );
   }
 
