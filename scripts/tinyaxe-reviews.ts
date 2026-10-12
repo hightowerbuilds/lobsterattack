@@ -48,7 +48,11 @@ const DULL = new Set(
 
 function review(title: string) {
   const category = CATEGORIES.find(([, re]) => re.test(title))?.[0] ?? "other";
-  const concepts = [...new Set(norm(title).replace(/[^a-z0-9 .+#/-]/g, " ").split(/\s+/).filter((w) => w.length > 3 && !DULL.has(w)))].slice(0, 5);
+  const words = norm(title)
+    .replace(/[^a-z0-9 +#/-]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 3 && !DULL.has(w));
+  const concepts = [...new Set(words)].slice(0, 5);
   return { category, concepts, summary: title.slice(0, 200) };
 }
 

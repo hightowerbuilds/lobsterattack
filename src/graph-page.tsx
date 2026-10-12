@@ -42,6 +42,8 @@ const [depth, setDepth] = createSignal(Math.min(3, Math.max(1, recall<number>("l
 let globalView: GraphView | null = null;
 let localView: GraphView | null = null;
 let sessionsView: GraphView | null = null;
+/** The session graph's data, as its query last had it. */
+const [sessionsData, setSessionsData] = createSignal<GraphData | undefined>();
 
 
 // What the filters leave showing, of the whole graph.
@@ -55,6 +57,8 @@ const mask = createMemo(() => {
  * shows it in place. It draws nothing until it's attached. */
 export function warmGraph(): GraphView {
   if (globalView) return globalView;
+  // The session graph lays itself out from sign-in too.
+  queueMicrotask(() => warmSessions());
   const view = (globalView = new GraphView({
     label: "A graph of every note and its links. The sidebar lists the same notes.",
     background: "--bg",
@@ -87,9 +91,9 @@ function warmSessions(): GraphView {
   }));
   createRoot(() => {
     const q = sessionsQuery();
-    sessionsData = () => q.data;
     createEffect(() => {
       const g = q.data;
+      setSessionsData(g);
       if (!g) return;
       const plain = unwrap(g);
       view.setData(plain.nodes, plain.links);
@@ -101,14 +105,12 @@ function warmSessions(): GraphView {
 
 /** The nodes of the session graph, by kind, for the sidebar's legend. */
 export function sessionCounts(): { kind: string; n: number }[] {
-  const g = sessionsView ? sessionsData() : null;
+  const g = sessionsData();
   if (!g) return [];
   const counts = new Map<string, number>();
   for (const n of g.nodes) counts.set(n.kind, (counts.get(n.kind) ?? 0) + 1);
   return ["session", "category", "concept"].map((kind) => ({ kind, n: counts.get(kind) ?? 0 }));
 }
-let sessionsData: () => GraphData | undefined = () => undefined;
-
 export function GraphPage() {
   const view = () => (which() === "sessions" ? warmSessions() : warmGraph());
   document.title = "tiny-axe know-how";
