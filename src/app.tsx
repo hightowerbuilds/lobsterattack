@@ -1,12 +1,13 @@
 // tiny-axe's home: a sidebar of notes beside the graph, the overview, a
 // note with its local graph, or the chat history, for a signed-in viewer
-// (tiny-axe's local viewer, moved here). Built with Solid, so when tiny-axe
-// pushes notes or chats (the page asks /api/changes which, every few seconds)
-// each part of the page updates on its own: new notes join the lists and the
-// graph, counts change in place, and whatever you're reading, typing or
-// filtering stays as it is.
+// (tiny-axe's local viewer, moved here). Built with Solid and TanStack
+// Query, so when tiny-axe pushes notes or chats (the page asks /api/changes
+// which, every few seconds) each part of the page updates on its own: new
+// notes join the lists and the graph, counts change in place, and whatever
+// you're reading, typing or filtering stays as it is.
 
-import { createEffect, createResource, createSignal, For, Match, on, onCleanup, Show, Switch } from "solid-js";
+import { QueryClientProvider } from "@tanstack/solid-query";
+import { createEffect, createSignal, For, Match, on, Show, Switch } from "solid-js";
 import { render } from "solid-js/web";
 import { session, signOut } from "./auth.ts";
 import { ChatPage, ChatsPage } from "./chats.tsx";
@@ -14,26 +15,23 @@ import { SignIn } from "./signin.tsx";
 import "./style.css";
 import { GraphPage } from "./graph-page.tsx";
 import {
-  changes,
-  chatsChanged,
-  get,
+  changesQuery,
+  forget,
   go,
-  graph,
   loaded,
   menuOpen,
   overview,
   problem,
+  queryClient,
   recall,
-  refresh,
   remember,
   route,
   ROUTES,
-  setLoaded,
+  searchQuery,
   setMenuOpen,
-  setOverview,
-  setGraph,
+  showVault,
   sorted,
-  type Result,
+  vaultQuery,
 } from "./store.ts";
 import { Item, NotePage, OverviewPage } from "./views.tsx";
 
@@ -223,17 +221,14 @@ function Tree() {
 
 // Search results, searched again as the vault changes.
 function Results(props: { query: string }) {
-  const [results] = createResource(
-    () => [props.query, changes().version] as const,
-    async ([q]) => (await get<{ results: Result[] }>(`/api/search?q=${encodeURIComponent(q)}`)).results,
-  );
+  const results = searchQuery(() => props.query);
   return (
     <Switch>
-      <Match when={results.error}>{(error) => <p class="problem">{(error() as Error).message}</p>}</Match>
-      <Match when={results.latest?.length === 0}>
+      <Match when={results.error}>{(error) => <p class="problem">{error().message}</p>}</Match>
+      <Match when={results.data?.length === 0}>
         <p class="empty">Nothing matches.</p>
       </Match>
-      <Match when={results.latest}>
+      <Match when={results.data}>
         {(list) => (
           <ul class="results">
             <For each={list()}>
@@ -265,84 +260,32 @@ document.addEventListener("click", (event) => {
   go(url.pathname + url.search);
 });
 
-// tiny-axe pushes notes as tasks finish, and chats as they go on. The page
-// asks every POLL_MS what changed since it last asked (not while the tab is
-// hidden), and the API says which notes and chats.
-const POLL_MS = 15_000;
-
-interface ChangesReply {
-  notes: string | null;
-  chats: string | null;
-  changed?: { notes: string[]; chats: string[] } | { all: true };
-}
-
-function poll(): () => void {
-  let since: string | null = null;
-  let timer: number | undefined;
-  let stopped = false;
-
-  async function tick() {
-    if (!document.hidden) {
-      try {
-        const reply = await get<ChangesReply>(since ? `/api/changes?since=${encodeURIComponent(since)}` : "/api/changes");
-        const changed = reply.changed;
-        if (changed && "all" in changed) {
-          refresh(graph()?.nodes.map((n) => n.id) ?? []);
-          chatsChanged([]);
-        } else if (changed) {
-          if (changed.notes.length > 0) refresh(changed.notes);
-          if (changed.chats.length > 0) chatsChanged(changed.chats);
-        }
-        const latest = [reply.notes, reply.chats, since].filter((t) => t !== null).sort((a, b) => Date.parse(a) - Date.parse(b));
-        since = latest.at(-1) ?? null;
-      } catch {
-        // Shown by the next fetch that fails; asked again next time.
-      }
-    }
-    if (!stopped) timer = window.setTimeout(tick, POLL_MS);
-  }
-
-  const visible = () => {
-    if (document.hidden || stopped) return;
-    clearTimeout(timer);
-    tick();
-  };
-  document.addEventListener("visibilitychange", visible);
-  tick();
-  return () => {
-    stopped = true;
-    clearTimeout(timer);
-    document.removeEventListener("visibilitychange", visible);
-  };
-}
-
-// Signed in: fetch, then keep up. Signed out: forget what was shown.
-function Root() {
-  createEffect(
-    on(
-      () => session()?.user.id,
-      (user) => {
-        if (!user) {
-          setLoaded(false);
-          setOverview({ summary: null, folders: [] });
-          setGraph(null);
-          return;
-        }
-        refresh().then(() => setLoaded(true));
-        onCleanup(poll());
-      },
-    ),
+// Signed in: the vault, kept up by the poll. Signed out: forget what was shown.
+function SignedIn() {
+  const vault = vaultQuery();
+  changesQuery();
+  createEffect(() => showVault(vault.data, vault.error));
+  return (
+    <Show when={loaded()}>
+      <App />
+    </Show>
   );
+}
+
+function Root() {
+  createEffect(on(() => session()?.user.id, (user) => !user && forget()));
 
   return (
-    <Switch>
-      <Match when={session() === null}>
-        <SignIn />
-      </Match>
-      <Match when={session() && loaded()}>
-        <App />
-      </Match>
-    </Switch>
+    <QueryClientProvider client={queryClient}>
+      <Switch>
+        <Match when={session() === null}>
+          <SignIn />
+        </Match>
+        <Match when={session()}>
+          <SignedIn />
+        </Match>
+      </Switch>
+    </QueryClientProvider>
   );
 }
 

@@ -5,9 +5,9 @@
 // search. Text from chats always goes in as text; the only HTML inserted is
 // a message the server rendered (render.ts).
 
-import { createEffect, createResource, createSignal, For, Match, on, Show, Switch } from "solid-js";
+import { createEffect, createSignal, For, Match, on, Show, Switch } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { chatChanges, chatHref, get, type ChatDetail, type ChatList } from "./store.ts";
+import { chatHref, chatQuery, chatsQuery, type ChatDetail, type ChatList } from "./store.ts";
 
 // Kept while the page is open, so coming back from a chat finds the same search.
 const [query, setQuery] = createSignal("");
@@ -15,14 +15,11 @@ const [query, setQuery] = createSignal("");
 export function ChatsPage() {
   document.title = "Chats · tiny-axe know-how";
   let typing: number | undefined;
-  const [list] = createResource(
-    () => [query(), chatChanges().version] as const,
-    ([q]) => get<ChatList>(q ? `/api/chats?q=${encodeURIComponent(q)}` : "/api/chats"),
-  );
+  const list = chatsQuery(query);
   const [shown, setShown] = createStore<ChatList>({ total: 0, sessions: [] });
   const [loaded, setLoaded] = createSignal(false);
   createEffect(() => {
-    const latest = list.error ? null : list.latest;
+    const latest = list.error ? null : list.data;
     if (!latest) return;
     setShown(reconcile(latest, { key: "id" }));
     setLoaded(true);
@@ -93,16 +90,11 @@ export function ChatsPage() {
 /** One chat: the user's messages and tiny-axe's replies, with the activity
  * between them, fetched again whenever tiny-axe writes it. */
 export function ChatPage(props: { id: string }) {
-  const [stamp, setStamp] = createSignal(0);
-  createEffect(on(chatChanges, (c) => c.ids.includes(props.id) && setStamp((n) => n + 1), { defer: true }));
-  const [chat] = createResource(
-    () => [props.id, stamp()] as const,
-    ([id]) => get<ChatDetail>(`/api/chat?id=${encodeURIComponent(id)}`),
-  );
+  const chat = chatQuery(() => props.id);
   // Messages are matched by place, so a new one is added below the rest.
   const [shown, setShown] = createStore<{ chat: ChatDetail | null }>({ chat: null });
   createEffect(() => {
-    const latest = chat.error ? null : chat.latest;
+    const latest = chat.error ? null : chat.data;
     if (!latest) return;
     setShown("chat", reconcile(latest, { key: "id" }));
     document.title = `${latest.title || "Untitled chat"} · tiny-axe know-how`;

@@ -1,8 +1,15 @@
 // What the page shows, kept up to date: the vault's overview and graph
 // (fetched again whenever tiny-axe writes notes), which chats changed,
-// where the page is, and the conveniences remembered in this browser. Solid signals and a store,
-// so each part of the page updates on its own.
+// where the page is, and the conveniences remembered in this browser.
+//
+// Every call to the server goes through TanStack Query (`queries` below): it
+// keeps what each part of the page asked for, so coming back to a note or a
+// search shows it at once, and when the poll (`pollChanges`) hears that
+// tiny-axe wrote something, the queries it touches are marked stale and
+// fetched again. Solid signals and a store carry the results to the page,
+// so each part updates on its own.
 
+import { QueryClient, keepPreviousData, useQuery } from "@tanstack/solid-query";
 import { batch, createSignal } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import type { GraphData } from "../api/_lib/vault/graph.ts";
@@ -102,6 +109,102 @@ export function remember(key: string, value: unknown) {
   }
 }
 
+// The queries
+
+/** What the page asked the server for. Nothing goes stale on its own: the
+ * poll says when something changed. A failed call isn't retried (a 401 has
+ * already signed out). */
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: Infinity, retry: false, refetchOnWindowFocus: false, refetchOnReconnect: false },
+  },
+});
+
+/** The vault, in one go: its overview and its graph. */
+export const vaultQuery = () =>
+  useQuery(() => ({
+    queryKey: ["vault"],
+    queryFn: async () => {
+      const [overview, graph] = await Promise.all([get<Overview>("/api/vault"), get<GraphData>("/api/graph")]);
+      return { overview, graph };
+    },
+  }));
+
+export const noteQuery = (id: () => string) =>
+  useQuery(() => ({
+    queryKey: ["note", id()],
+    queryFn: () => get<NoteDetail>(`/api/note?id=${encodeURIComponent(id())}`),
+    placeholderData: keepPreviousData,
+  }));
+
+export const searchQuery = (q: () => string) =>
+  useQuery(() => ({
+    queryKey: ["search", q()],
+    queryFn: async () => (await get<{ results: Result[] }>(`/api/search?q=${encodeURIComponent(q())}`)).results,
+    placeholderData: keepPreviousData,
+  }));
+
+export const chatsQuery = (q: () => string) =>
+  useQuery(() => ({
+    queryKey: ["chats", q()],
+    queryFn: () => get<ChatList>(q() ? `/api/chats?q=${encodeURIComponent(q())}` : "/api/chats"),
+    placeholderData: keepPreviousData,
+  }));
+
+export const chatQuery = (id: () => string) =>
+  useQuery(() => ({
+    queryKey: ["chat", id()],
+    queryFn: () => get<ChatDetail>(`/api/chat?id=${encodeURIComponent(id())}`),
+    placeholderData: keepPreviousData,
+  }));
+
+// tiny-axe pushes notes as tasks finish, and chats as they go on. The page
+// asks every POLL_MS what changed since it last asked (not while the tab is
+// hidden), and the API says which notes and chats; those queries are then
+// stale, and whatever's showing them fetches again.
+export const POLL_MS = 15_000;
+
+interface ChangesReply {
+  notes: string | null;
+  chats: string | null;
+  changed?: { notes: string[]; chats: string[] } | { all: true };
+}
+
+let since: string | null = null;
+
+export const changesQuery = () =>
+  useQuery(() => ({
+    queryKey: ["changes"],
+    queryFn: async () => {
+      const reply = await get<ChangesReply>(since ? `/api/changes?since=${encodeURIComponent(since)}` : "/api/changes");
+      const changed = reply.changed;
+      if (changed && "all" in changed) {
+        notesChanged(graph()?.nodes.map((n) => n.id) ?? []);
+        chatsChanged([]);
+      } else if (changed) {
+        if (changed.notes.length > 0) notesChanged(changed.notes);
+        if (changed.chats.length > 0) chatsChanged(changed.chats);
+      }
+      const latest = [reply.notes, reply.chats, since].filter((t) => t !== null).sort((a, b) => Date.parse(a) - Date.parse(b));
+      since = latest.at(-1) ?? null;
+      return reply;
+    },
+    refetchInterval: POLL_MS,
+    refetchIntervalInBackground: false,
+    staleTime: 0,
+  }));
+
+/** Signed out: forget everything fetched, and where the poll was. */
+export function forget() {
+  since = null;
+  queryClient.clear();
+  batch(() => {
+    setLoaded(false);
+    setOverview({ summary: null, folders: [] });
+    setGraph(null);
+  });
+}
+
 // The vault
 
 /** Whether the first fetch after signing in is done (whether or not it worked). */
@@ -120,36 +223,34 @@ export const [graph, setGraph] = createSignal<GraphData | null>(null);
 export const [changes, setChanges] = createSignal<{ ids: string[]; version: number }>({ ids: [], version: 0 });
 export const [problem, setProblem] = createSignal<string | null>(null);
 
-// One fetch at a time; changes that arrive meanwhile wait for one more.
-let fetching = false;
-let queued: string[] | null = null;
+/** What the vault query brought: into the store (notes keep their place) and the graph. */
+export function showVault(data: { overview: Overview; graph: GraphData } | undefined, error: Error | null) {
+  if (error) {
+    setProblem(error.message);
+  } else if (data) {
+    batch(() => {
+      setOverview(reconcile(data.overview, { key: "id" }));
+      setGraph(data.graph);
+      setChanges((c) => ({ ids: pending.splice(0), version: c.version + 1 }));
+      setProblem(null);
+    });
+  }
+  setLoaded(true);
+}
 
-/** Fetches the vault again: `changed` are the notes the server says moved. */
-export async function refresh(changed: string[] = []) {
-  if (fetching) {
-    queued = [...(queued ?? []), ...changed];
-    return;
-  }
-  fetching = true;
-  try {
-    let ids = changed;
-    for (;;) {
-      const [o, g] = await Promise.all([get<Overview>("/api/vault"), get<GraphData>("/api/graph")]);
-      batch(() => {
-        setOverview(reconcile(o, { key: "id" }));
-        setGraph(g);
-        setChanges((c) => ({ ids, version: c.version + 1 }));
-        setProblem(null);
-      });
-      if (queued === null) break;
-      ids = queued;
-      queued = null;
-    }
-  } catch (error) {
-    setProblem((error as Error).message);
-  } finally {
-    fetching = false;
-  }
+// The notes the server said changed, until the vault query shows them.
+const pending: string[] = [];
+
+/** The server says these notes moved: the vault, the searches, and the
+ * notes they touch are fetched again. */
+function notesChanged(ids: string[]) {
+  pending.push(...ids);
+  queryClient.invalidateQueries({ queryKey: ["vault"] });
+  queryClient.invalidateQueries({ queryKey: ["search"] });
+  queryClient.invalidateQueries({
+    queryKey: ["note"],
+    predicate: (q) => touches(q.queryKey[1] as string, ids),
+  });
 }
 
 // The chat history
@@ -157,7 +258,15 @@ export async function refresh(changed: string[] = []) {
 /** The chats tiny-axe last wrote, and a count of writes. */
 export const [chatChanges, setChatChanges] = createSignal<{ ids: string[]; version: number }>({ ids: [], version: 0 });
 
-export const chatsChanged = (ids: string[]) => setChatChanges((c) => ({ ids, version: c.version + 1 }));
+/** The server says these chats changed (none given: all of them). */
+export function chatsChanged(ids: string[]) {
+  setChatChanges((c) => ({ ids, version: c.version + 1 }));
+  queryClient.invalidateQueries({ queryKey: ["chats"] });
+  queryClient.invalidateQueries({
+    queryKey: ["chat"],
+    predicate: (q) => ids.length === 0 || ids.includes(q.queryKey[1] as string),
+  });
+}
 
 /** Whether `ids` changed note `id` or a note linked to it, either way. */
 export function touches(id: string, ids: string[]) {

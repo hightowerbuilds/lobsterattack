@@ -2,20 +2,18 @@
 // always goes in as text; the only HTML inserted is a note body the server
 // rendered (render.ts).
 
-import { createEffect, createResource, createSignal, For, Match, on, Show, Switch, type JSX } from "solid-js";
+import { createEffect, For, Match, on, Show, Switch, type JSX } from "solid-js";
 import { LocalGraph } from "./graph-page.tsx";
 import {
   blocked,
   byTitle,
-  changes,
-  get,
   graphHref,
   noteHref,
+  noteQuery,
   ORDER,
   overview,
   route,
   sorted,
-  touches,
   type Entry,
   type NoteDetail,
   type Value,
@@ -106,20 +104,15 @@ function Tile(props: { n: number; what: string; sub?: string }) {
 
 /** A note, fetched again whenever tiny-axe changes it or a note linked to it. */
 export function NotePage(props: { id: string }) {
-  const [stamp, setStamp] = createSignal(0);
-  createEffect(on(changes, (c) => touches(props.id, c.ids) && setStamp((n) => n + 1), { defer: true }));
-  const [note] = createResource(
-    () => [props.id, stamp()] as const,
-    ([id]) => get<NoteDetail>(`/api/note?id=${encodeURIComponent(id)}`),
-  );
+  const note = noteQuery(() => props.id);
   createEffect(() => {
-    if (!note.error && note.latest) document.title = `${note.latest.title} · tiny-axe know-how`;
+    if (!note.error && note.data) document.title = `${note.data.title} · tiny-axe know-how`;
   });
 
   return (
     <Switch>
-      <Match when={note.error}>{(error) => <p class="problem">{(error() as Error).message}</p>}</Match>
-      <Match when={note.latest}>
+      <Match when={note.error}>{(error) => <p class="problem">{error().message}</p>}</Match>
+      <Match when={note.data}>
         {(n) => (
           <div class="note-page">
             <article class="note">
