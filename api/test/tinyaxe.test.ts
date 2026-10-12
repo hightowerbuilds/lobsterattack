@@ -32,7 +32,13 @@ async function setup() {
   });
   const tokens: Record<string, string> = { "token-owner": "user-owner", "token-guest": "user-guest", "token-stranger": "user-x" };
   const app = new Hono().basePath("/api");
-  app.route("/", tinyAxeApi({ store: () => store, verifyViewer: async (t) => tokens[t] ?? null }));
+  const accounts = {
+    create: async () => ({ id: "x" }),
+    verify: async () => null,
+    remove: async () => {},
+    signinToken: async (id: string) => `one+time/${id}`,
+  };
+  app.route("/", tinyAxeApi({ store: () => store, verifyViewer: async (t) => tokens[t] ?? null, accounts: () => accounts }));
   let next = 1;
 
   async function rpc(method: string, params: object = {}, key = KEY) {
@@ -111,6 +117,7 @@ describe("/api/mcp", () => {
       "graph_note",
       "graph_link",
       "graph_add_note",
+      "signin_link",
       "vault_push",
       "chat_push",
     ]);
@@ -252,6 +259,16 @@ describe("/api/mcp", () => {
     expect(html).not.toContain("<script");
     expect(html).not.toContain("<img");
     expect(html).toContain("&lt;img");
+  });
+
+  test("signin_link: a one-time sign-in in the link's fragment, for the key's owner", async () => {
+    const { call } = await setup();
+    expect((await call("signin_link")).text).toBe("http://localhost/#signin=one%2Btime%2Fowner-1");
+    expect((await call("signin_link", { focus: "shop.example" })).text).toBe(
+      "http://localhost/note/shop.example#signin=one%2Btime%2Fowner-1",
+    );
+    expect((await call("signin_link", { page: "chats" })).text).toBe("http://localhost/chats#signin=one%2Btime%2Fowner-1");
+    expect((await call("signin_link", {}, OTHER_KEY)).text).toEndWith("#signin=one%2Btime%2Fowner-2");
   });
 
   test("each key sees only its own owner's site", async () => {

@@ -27,14 +27,16 @@ app.route("/health", health);
 // tiny-axe's home: /api/mcp for tiny-axe, and what the site's pages read.
 let store: Store | undefined;
 const theStore = () => (store ??= supabaseStore(supabase));
+const theAccounts = () => supabaseAccounts(supabase);
 
 // Accounts, made from tiny-axe when it first opens.
-app.route("/", accountsApi({ store: theStore, accounts: () => supabaseAccounts(supabase) }));
+app.route("/", accountsApi({ store: theStore, accounts: theAccounts }));
 
 app.route(
   "/",
   tinyAxeApi({
     store: theStore,
+    accounts: theAccounts,
     async verifyViewer(token) {
       const { data, error } = await supabase.auth.getUser(token);
       return error ? null : (data.user?.id ?? null);

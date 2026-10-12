@@ -1,5 +1,6 @@
 import { Hono, type Context } from "hono";
 import { createMiddleware } from "hono/factory";
+import type { Accounts } from "../_lib/accounts.js";
 import type { Store } from "../_lib/store.js";
 import { loadChat, loadChats, loadVault, sha256 } from "../_lib/tinyaxe.js";
 import { chatDetail, chatList, detail, graphView, overview, rendererFor, search } from "../_lib/vault/views.js";
@@ -19,6 +20,8 @@ export interface Deps {
   store: () => Store;
   /** The Supabase user an access token belongs to, or null. */
   verifyViewer: (token: string) => Promise<string | null>;
+  /** Supabase Auth, for signin_link. */
+  accounts?: () => Accounts;
 }
 
 type Env = { Variables: { owner: string } };

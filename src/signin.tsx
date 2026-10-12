@@ -2,7 +2,7 @@
 // site's owner gave you.
 
 import { createSignal, Show } from "solid-js";
-import { configured, signIn } from "./auth.ts";
+import { configured, linkProblem, signIn } from "./auth.ts";
 
 export function SignIn() {
   const [error, setError] = createSignal<string | null>(null);
@@ -44,7 +44,7 @@ export function SignIn() {
         <button type="submit" disabled={busy() || !configured}>
           {busy() ? "Signing in…" : "Sign in"}
         </button>
-        <Show when={error() ?? (configured ? null : "This site isn't set up to sign in yet.")}>
+        <Show when={error() ?? linkProblem() ?? (configured ? null : "This site isn't set up to sign in yet.")}>
           {(message) => (
             <p class="problem" role="alert">
               {message()}

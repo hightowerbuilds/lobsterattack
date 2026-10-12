@@ -30,5 +30,14 @@ export function supabaseAccounts(admin: SupabaseClient): Accounts {
     async remove(id) {
       await admin.auth.admin.deleteUser(id);
     },
+
+    async signinToken(id) {
+      const { data: found, error: notFound } = await admin.auth.admin.getUserById(id);
+      if (notFound || !found.user?.email) throw new Error(notFound?.message ?? "no such user");
+      // generateLink makes the link without mailing it; only its token is used.
+      const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email: found.user.email });
+      if (error || !data.properties?.hashed_token) throw new Error(error?.message ?? "no token");
+      return data.properties.hashed_token;
+    },
   };
 }

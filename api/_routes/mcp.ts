@@ -8,9 +8,9 @@ import type { Deps } from "./tinyaxe.js";
 // Vercel's short-lived functions). The key was checked before this runs, and
 // says whose site it is.
 //
-// The read tools are for the model. vault_push and chat_push are for
-// tiny-axe's own code (its vault writer and chat history); tiny-axe's gate
-// keeps them from agents.
+// The read tools are for the model. vault_push, chat_push and signin_link are
+// for tiny-axe's own code (its vault writer, chat history, and opening the
+// site signed in); tiny-axe's gate keeps them from agents.
 
 const PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 const VERSION = "0.1.0";
@@ -116,6 +116,25 @@ const TOOLS: Record<string, Tool> = {
     async run({ title, body }, { owner, deps, origin }) {
       const note = await addNote(deps.store(), owner, { title, body });
       return json({ ...note, link: `${origin}/note/${encodeURIComponent(note.id)}` });
+    },
+  },
+
+  signin_link: {
+    description:
+      "For tiny-axe: a link that opens the user's page signed in, once (the graph, one note with `focus`, or " +
+      "`page: \"chats\"`). The one-time token is in the link's #fragment, so it never reaches a server log.",
+    inputSchema: {
+      type: "object",
+      properties: { focus: { type: "string" }, page: { type: "string", enum: ["graph", "chats"] } },
+      required: [],
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+    async run({ focus, page }, { owner, deps, origin }) {
+      if (!deps.accounts) throw new Refused("this site can't make sign-in links");
+      const token = await deps.accounts().signinToken(owner);
+      const path =
+        page === "chats" ? "/chats" : typeof focus === "string" && focus !== "" ? `/note/${encodeURIComponent(focus)}` : "/";
+      return text(`${origin}${path}#signin=${encodeURIComponent(token)}`);
     },
   },
 

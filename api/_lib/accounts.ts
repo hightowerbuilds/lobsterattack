@@ -33,4 +33,7 @@ export interface Accounts {
   verify(email: string, password: string): Promise<string | null>;
   /** Removes a user made a moment ago, when the rest of signing up failed. */
   remove(id: string): Promise<void>;
+  /** A one-time token that signs the user in (Supabase's magic-link token,
+   * made without sending any email), for tiny-axe to open the site with. */
+  signinToken(id: string): Promise<string>;
 }

@@ -13,16 +13,52 @@ import { emailFor } from "../api/_lib/accounts.ts";
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const key = (import.meta.env.VITE_SUPABASE_ANON_KEY ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) as string | undefined;
 
-const client = url && key ? createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true } }) : null;
+// The page reads its own sign-in links (#signin=, below), not Supabase's.
+const client =
+  url && key
+    ? createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } })
+    : null;
 
 export const configured = client !== null;
 
 /** The signed-in session; undefined until it's known. */
 export const [session, setSession] = createSignal<Session | null | undefined>(client ? undefined : null);
 
+/** Why a sign-in link from tiny-axe didn't work, or null. */
+export const [linkProblem, setLinkProblem] = createSignal<string | null>(null);
+
+// tiny-axe opens the site in the user's browser as `…#signin=<token>`: a
+// one-time token (Supabase's magic-link token, made for the account of
+// tiny-axe's key, never mailed) that signs in here. It's in the fragment, so
+// it never reaches a server; it's taken out of the address bar at once, and
+// using it once uses it up.
+function takeSigninToken(): string | null {
+  const found = /(?:^#|&)signin=([^&]+)/.exec(location.hash);
+  if (!found) return null;
+  history.replaceState(null, "", location.pathname + location.search);
+  return decodeURIComponent(found[1]);
+}
+
 if (client) {
-  client.auth.getSession().then(({ data }) => setSession(data.session));
-  client.auth.onAuthStateChange((_event, next) => setSession(next));
+  const token = takeSigninToken();
+  let ready = false;
+
+  const first = token
+    ? client.auth.verifyOtp({ token_hash: token, type: "magiclink" }).then(async ({ data, error }) => {
+        if (!error) return data.session;
+        setLinkProblem("That sign-in link from tiny-axe was used already or has run out. Sign in here, or type /graph in tiny-axe for a new one.");
+        return (await client.auth.getSession()).data.session;
+      })
+    : client.auth.getSession().then(({ data }) => data.session);
+
+  first.then((s) => {
+    ready = true;
+    setSession(s);
+  });
+  // Not before the first answer: a sign-in link being used shouldn't flash the sign-in page.
+  client.auth.onAuthStateChange((_event, next) => {
+    if (ready) setSession(next);
+  });
 }
 
 /** Signs in; the reason it didn't, or null. */

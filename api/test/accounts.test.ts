@@ -24,6 +24,9 @@ function fakeAccounts() {
       for (const [email, user] of users) if (user.id === id) users.delete(email);
       removed++;
     },
+    async signinToken(id) {
+      return `token-for-${id}`;
+    },
   };
   return { accounts, users, removed: () => removed };
 }
