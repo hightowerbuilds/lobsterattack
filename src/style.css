@@ -388,9 +388,9 @@ main.full { padding: 0; height: 100vh; position: sticky; top: 0; }
   font-size: 13px;
 }
 .graph-tools .row { display: flex; justify-content: flex-end; gap: 8px; }
-.graph-tools .mode, .graph-card .mode { display: flex; }
-.graph-tools .mode button:first-child, .graph-card .mode button:first-child { border-radius: var(--radius) 0 0 var(--radius); }
-.graph-tools .mode button:last-child, .graph-card .mode button:last-child { border-radius: 0 var(--radius) var(--radius) 0; margin-left: -1px; }
+.graph-tools .mode { display: flex; }
+.graph-tools .mode button:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.graph-tools .mode button:last-child { border-radius: 0 var(--radius) var(--radius) 0; margin-left: -1px; }
 .filters { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
 .filters summary { cursor: pointer; padding: 6px 10px; color: var(--muted); font-weight: 600; }
 .filters summary .on { color: var(--accent); font-weight: 400; }

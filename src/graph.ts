@@ -1,15 +1,13 @@
-// A graph of notes drawn with Three.js: every note a cube, every link a line,
+// A graph of notes drawn with Three.js: every note a dot, every link a line,
 // laid out by forces in a worker (layout.ts). The home page's global graph
 // and each note's local graph are both one of these.
 //
-// Cubes are one instanced mesh and lines one set of segments, so a vault of
-// thousands of notes is two draw calls. Each cube's faces show black-and-white
-// static, like an old TV between channels, so the graph redraws all the time. Labels are drawn as text on a 2D
+// Dots are one instanced mesh and lines one set of segments, so a vault of
+// thousands of notes is two draw calls. Labels are drawn as text on a 2D
 // canvas over the top, fading in as you zoom. It draws only when something
 // moved.
 
 import {
-  BoxGeometry,
   BufferAttribute,
   BufferGeometry,
   Color,
@@ -23,6 +21,7 @@ import {
   OrthographicCamera,
   PerspectiveCamera,
   Plane,
+  PlaneGeometry,
   Raycaster,
   Scene,
   ShaderMaterial,
@@ -66,18 +65,18 @@ const NODE_VERTEX = /* glsl */ `
   attribute vec3 aRing;
   attribute float aRingOn;
   attribute float aAlpha;
-  varying vec3 vLocal;
-  varying vec3 vNormal;
-  varying vec3 vSeed;
+  varying vec2 vUv;
+  varying vec3 vFill;
+  varying vec3 vRing;
   varying float vRingOn;
   varying float vAlpha;
   void main() {
-    // A unit cube, scaled so its side is the note's diameter.
-    vec3 world = aCenter + position * 2.0 * aRadius;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(world, 1.0);
-    vLocal = position;
-    vNormal = normalize(normalMatrix * normal);
-    vSeed = aCenter;
+    vec4 mv = modelViewMatrix * vec4(aCenter, 1.0);
+    mv.xy += position.xy * 2.0 * aRadius;
+    gl_Position = projectionMatrix * mv;
+    vUv = position.xy * 2.0;
+    vFill = aFill;
+    vRing = aRing;
     vRingOn = aRingOn;
     vAlpha = aAlpha;
   }
@@ -85,37 +84,24 @@ const NODE_VERTEX = /* glsl */ `
 
 const NODE_FRAGMENT = /* glsl */ `
   uniform vec3 uBg;
-  uniform float uTime;
-  varying vec3 vLocal;
-  varying vec3 vNormal;
-  varying vec3 vSeed;
+  varying vec2 vUv;
+  varying vec3 vFill;
+  varying vec3 vRing;
   varying float vRingOn;
   varying float vAlpha;
-
-  float hash(vec3 p) {
-    p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3));
-    p *= 17.0;
-    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
-  }
-
   void main() {
-    if (vAlpha < 0.01) discard;
-    // Static: a grid of grains on each face, reshuffled a dozen times a second.
-    float frame = floor(uTime * 12.0);
-    vec3 grain = floor(vLocal * 14.0) + vec3(frame, -frame * 0.7, frame * 1.3) + vSeed * 0.01;
-    float noise = hash(grain);
-    // Mostly dark grains with bright flecks, as a TV's snow is.
-    float snow = pow(noise, 1.6);
-    // The faces catch light from the front and above, so the cube reads as one.
-    float lambert = 0.55 + 0.45 * max(dot(vNormal, normalize(vec3(0.4, 0.7, 1.0))), 0.0);
-    float grey = snow * lambert;
-    // Picked out (open, hovered, just written): a lift towards white.
-    if (vRingOn > 0.5) grey = mix(grey, 1.0, 0.45);
-    // The cube's edges, a thin white line.
-    vec3 a = abs(vLocal);
-    float edge = step(0.47, max(min(a.x, a.y), max(min(a.y, a.z), min(a.x, a.z))));
-    grey = mix(grey, 0.85, edge * 0.6);
-    gl_FragColor = vec4(mix(uBg, vec3(grey), vAlpha), 1.0);
+    float d = length(vUv);
+    float aa = max(fwidth(d), 0.001);
+    float edge = 1.0 - smoothstep(1.0 - aa, 1.0, d);
+    if (edge * vAlpha < 0.01) discard;
+    vec3 colour = vFill;
+    if (vRingOn > 0.5) {
+      // Fill, a gap of background, then the ring.
+      float gap = smoothstep(0.62 - aa, 0.62, d);
+      float ring = smoothstep(0.76 - aa, 0.76, d);
+      colour = mix(mix(vFill, uBg, gap), vRing, ring);
+    }
+    gl_FragColor = vec4(mix(uBg, colour, vAlpha), edge);
   }
 `;
 
@@ -215,10 +201,10 @@ export class GraphView {
     this.dots = new Mesh(new InstancedBufferGeometry(), new ShaderMaterial({
       vertexShader: NODE_VERTEX,
       fragmentShader: NODE_FRAGMENT,
-      uniforms: { uBg: { value: new Vector3() }, uTime: { value: 0 } },
+      uniforms: { uBg: { value: new Vector3() } },
       transparent: true,
-      depthTest: true,
-      depthWrite: true,
+      depthTest: false,
+      depthWrite: false,
     }));
     this.dots.frustumCulled = false;
     this.dots.renderOrder = 1;
@@ -398,9 +384,6 @@ export class GraphView {
 
     if (this.glows.size > 0) this.restyle();
     if (this.styleDirty) this.style();
-    // The static on the cubes never holds still.
-    this.dots.material.uniforms.uTime.value = performance.now() / 1000;
-    if (this.nodes.length > 0 && !reducedMotion()) this.dirty = true;
     if (this.dirty) {
       this.renderer.render(this.scene, this.camera);
       this.project();
@@ -451,11 +434,10 @@ export class GraphView {
 
   private buffers() {
     const n = this.nodes.length;
-    const cube = new BoxGeometry(1, 1, 1);
+    const quad = new PlaneGeometry(1, 1);
     const geometry = new InstancedBufferGeometry();
-    geometry.index = cube.index;
-    geometry.setAttribute("position", cube.getAttribute("position"));
-    geometry.setAttribute("normal", cube.getAttribute("normal"));
+    geometry.index = quad.index;
+    geometry.setAttribute("position", quad.getAttribute("position"));
     geometry.setAttribute("aCenter", new InstancedBufferAttribute(this.positions.slice(), 3));
     geometry.setAttribute("aRadius", new InstancedBufferAttribute(new Float32Array(n), 1));
     geometry.setAttribute("aFill", new InstancedBufferAttribute(new Float32Array(n * 3), 3));
@@ -530,7 +512,7 @@ export class GraphView {
   // Size by use: how often a note was seen, or how many links it has.
   private sizes() {
     this.radius = Float32Array.from(this.nodes, (n, i) =>
-      Math.min(22, 5 + 2.6 * Math.log1p(n.seen ?? this.neighbours[i].length)),
+      Math.min(18, 3 + 2.2 * Math.log1p(n.seen ?? this.neighbours[i].length)),
     );
   }
 
@@ -720,10 +702,7 @@ export class GraphView {
     if (!any) return this.current();
     const centre = min.clone().add(max).multiplyScalar(0.5);
     const size = max.clone().sub(min);
-    // In 3D the camera can look from any side, so fit the sphere round the
-    // whole box (its half diagonal), not just its widest side.
-    const reach = this.dims === 3 ? size.length() / 2 + 60 : Math.max(size.x, size.y) / 2 + 30;
-    return this.viewAt(centre, reach, size);
+    return this.viewAt(centre, Math.max(size.x, size.y, this.dims === 3 ? size.z : 0) / 2 + 30, size);
   }
 
   // Close in on one note, with room for its neighbours.
@@ -741,7 +720,7 @@ export class GraphView {
     }
     const fov = (this.perspective.fov * Math.PI) / 180;
     const fit = Math.min(fov, 2 * Math.atan(Math.tan(fov / 2) * this.perspective.aspect));
-    const distance = Math.max(reach / Math.sin(fit / 2), 200);
+    const distance = reach / Math.sin(fit / 2);
     const away = this.camera.position.clone().sub(this.controls.target);
     if (away.lengthSq() < 1e-6) away.set(0, 0, 1);
     return { target: centre.clone(), position: centre.clone().add(away.normalize().multiplyScalar(distance)), zoom: 1 };

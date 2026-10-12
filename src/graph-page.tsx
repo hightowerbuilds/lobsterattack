@@ -1,11 +1,11 @@
-// The graph (home): every note, with filters and a 2D/3D switch; and a
+// The graph: every note, with filters, in 2D like Obsidian's; and a
 // note's local graph, the notes within 1–3 links of it. The Three.js views
 // (graph.ts) live as long as the page and are fed from the store; notes
 // tiny-axe just wrote glow.
 
 import { createEffect, createMemo, createRoot, createSignal, For, on, onMount, Show, type JSX } from "solid-js";
 import { choices, isFiltered, neighbourhood, NO_FILTERS, visibleMask, type Filters } from "./filter.ts";
-import { GraphView, type Dims } from "./graph.ts";
+import { GraphView } from "./graph.ts";
 import { changes, go, graph, href, noteHref, recall, remember, route } from "./store.ts";
 
 const KINDS: Record<string, string> = {
@@ -20,7 +20,6 @@ const KINDS: Record<string, string> = {
 };
 const TRUST = ["observed", "verified", "validated"];
 
-const [dims, setDimsTo] = createSignal<Dims>(recall<number>("graph-dims", 2) === 3 ? 3 : 2);
 const [filters, setFilters] = createSignal<Filters>({ ...NO_FILTERS, ...recall<Partial<Filters>>("graph-filters", {}) });
 const [moving, setMoving] = createSignal(false);
 const [depth, setDepth] = createSignal(Math.min(3, Math.max(1, recall<number>("local-depth", 1))));
@@ -28,14 +27,6 @@ const [depth, setDepth] = createSignal(Math.min(3, Math.max(1, recall<number>("l
 let globalView: GraphView | null = null;
 let localView: GraphView | null = null;
 
-export { dims };
-
-export function setDims(next: Dims) {
-  setDimsTo(next);
-  remember("graph-dims", next);
-  globalView?.setDims(next);
-  localView?.setDims(next);
-}
 
 // What the filters leave showing, of the whole graph.
 const mask = createMemo(() => {
@@ -54,7 +45,6 @@ export function warmGraph(): GraphView {
     open: (id) => go(noteHref(id)),
     status: setMoving,
   }));
-  view.setDims(dims());
   createRoot(() => {
     // New data first, then what the filters leave showing (both skip work
     // when nothing they care about changed).
@@ -72,7 +62,6 @@ export function warmGraph(): GraphView {
 
 export function GraphPage() {
   const view = warmGraph();
-  view.setDims(dims());
   document.title = "tiny-axe know-how";
 
   let holder!: HTMLDivElement;
@@ -102,15 +91,6 @@ export function GraphPage() {
       <div class="graph-holder" ref={holder} />
       <div class="graph-tools">
         <div class="row">
-          <div class="mode" role="group" aria-label="Layout">
-            <For each={[2, 3] as const}>
-              {(d) => (
-                <button type="button" value={String(d)} aria-pressed={dims() === d} onClick={() => setDims(d)}>
-                  {d}D
-                </button>
-              )}
-            </For>
-          </div>
           <button type="button" class="fit" title="Bring every note into view" onClick={() => view.fit(true)}>
             Fit
           </button>
@@ -248,7 +228,6 @@ export function LocalGraph(props: { id: string }) {
     open: (next) => go(noteHref(next)),
   });
   const view = localView;
-  view.setDims(dims());
 
   let holder!: HTMLDivElement;
   onMount(() => view.attach(holder));

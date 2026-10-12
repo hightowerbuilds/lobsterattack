@@ -9,7 +9,9 @@ own (`git push origin main`; Vercel builds it), as the user asked.
   back. Done 2026-10-12 (8d836f3): `src/store.ts` has one query per thing
   shown, and the poll marks stale what tiny-axe changed.
 - A home page at `/`: "dashboard-like", everything but the graphs.
-- One link from it to the graph; the graph page keeps the 2D/3D switch.
+- One link from it to the graph. (The 3D graph was cut on 2026-10-12: it
+  came up blank or as one huge cube for the user; the graph is 2D only,
+  with round notes, like Obsidian's.)
 - The graphs load while the home page is up, so opening the graph is instant.
 
 ## Where things are

@@ -3,7 +3,7 @@
 // rendered (render.ts).
 
 import { createEffect, createSignal, For, Match, on, Show, Switch, type JSX } from "solid-js";
-import { dims, LocalGraph, setDims } from "./graph-page.tsx";
+import { LocalGraph } from "./graph-page.tsx";
 import {
   blocked,
   byTitle,
@@ -91,8 +91,7 @@ function List(props: { entries: Entry[]; meta: (e: Entry) => string; empty: stri
 }
 
 /** The home page: what tiny-axe knows, in numbers and lists, and the one
- * link to the graph (in 2D or 3D, as chosen here; the graph lays itself out
- * meanwhile). */
+ * link to the graph (which lays itself out meanwhile). */
 export function HomePage() {
   document.title = "tiny-axe know-how";
   const notes = (folder: string) => overview.folders.find((f) => f.name === folder)?.notes ?? [];
@@ -106,15 +105,6 @@ export function HomePage() {
         <a class="button open-graph" href="/graph">
           Open the graph
         </a>
-        <div class="mode" role="group" aria-label="Open it in">
-          <For each={[2, 3] as const}>
-            {(d) => (
-              <button type="button" value={String(d)} aria-pressed={dims() === d} onClick={() => setDims(d)}>
-                {d}D
-              </button>
-            )}
-          </For>
-        </div>
         <Show when={overview.summary}>
           <span class="graph-count">
             {s().sites + s().pages + s().controls + s().paths + s().tools + s().tasks + s().notes} notes in the graph
