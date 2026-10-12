@@ -40,5 +40,8 @@ serve(async (req) => {
     expires_at: verified.session.expires_at,
     owner_id: owner,
     topic: `remote:${owner}`,
+    // Realtime wants the project's public key in the websocket URL; it's the
+    // same one the site's bundle carries.
+    apikey: Deno.env.get("SUPABASE_ANON_KEY"),
   });
 });
