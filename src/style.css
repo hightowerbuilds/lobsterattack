@@ -271,7 +271,7 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
 
 .crumbs { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--faint); font-size: 13px; margin-bottom: 6px; }
 .badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 16px; }
-.review-badges { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.review-badges { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .badge.category { color: var(--category); border-color: var(--category); }
 .badge.concept { color: var(--concept); border-color: var(--concept); }
 .badge {
