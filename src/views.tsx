@@ -3,6 +3,7 @@
 // rendered (render.ts).
 
 import { createEffect, createSignal, For, Match, on, Show, Switch, type JSX } from "solid-js";
+import { Axe } from "./axe.tsx";
 import { LocalGraph } from "./graph-page.tsx";
 import {
   blocked,
@@ -115,7 +116,7 @@ export function HomePage() {
   return (
     <div class="home">
       <header class="home-head">
-        <h1>What tiny-axe knows</h1>
+        <Axe />
         <a class="button open-graph" href="/graph">
           Open the graph
         </a>
