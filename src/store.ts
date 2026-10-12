@@ -114,6 +114,8 @@ export function remember(key: string, value: unknown) {
 /** What the page asked the server for. Nothing goes stale on its own: the
  * poll says when something changed. A failed call isn't retried (a 401 has
  * already signed out). */
+// Every query names the client itself, so one made outside a component
+// (the session graph, in its own root) works too.
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: Infinity, retry: false, refetchOnWindowFocus: false, refetchOnReconnect: false },
@@ -128,42 +130,42 @@ export const vaultQuery = () =>
       const [overview, graph] = await Promise.all([get<Overview>("/api/vault"), get<GraphData>("/api/graph")]);
       return { overview, graph };
     },
-  }));
+  }), () => queryClient);
 
 /** The session graph: reviewed chats, their categories and concepts. */
 export const sessionsQuery = () =>
   useQuery(() => ({
     queryKey: ["sessions"],
     queryFn: () => get<GraphData>("/api/sessions/graph"),
-  }));
+  }), () => queryClient);
 
 export const noteQuery = (id: () => string) =>
   useQuery(() => ({
     queryKey: ["note", id()],
     queryFn: () => get<NoteDetail>(`/api/note?id=${encodeURIComponent(id())}`),
     placeholderData: keepPreviousData,
-  }));
+  }), () => queryClient);
 
 export const searchQuery = (q: () => string) =>
   useQuery(() => ({
     queryKey: ["search", q()],
     queryFn: async () => (await get<{ results: Result[] }>(`/api/search?q=${encodeURIComponent(q())}`)).results,
     placeholderData: keepPreviousData,
-  }));
+  }), () => queryClient);
 
 export const chatsQuery = (q: () => string) =>
   useQuery(() => ({
     queryKey: ["chats", q()],
     queryFn: () => get<ChatList>(q() ? `/api/chats?q=${encodeURIComponent(q())}` : "/api/chats"),
     placeholderData: keepPreviousData,
-  }));
+  }), () => queryClient);
 
 export const chatQuery = (id: () => string) =>
   useQuery(() => ({
     queryKey: ["chat", id()],
     queryFn: () => get<ChatDetail>(`/api/chat?id=${encodeURIComponent(id())}`),
     placeholderData: keepPreviousData,
-  }));
+  }), () => queryClient);
 
 // tiny-axe pushes notes as tasks finish, and chats as they go on. The page
 // asks every POLL_MS what changed since it last asked (not while the tab is
@@ -199,7 +201,7 @@ export const changesQuery = () =>
     refetchInterval: POLL_MS,
     refetchIntervalInBackground: false,
     staleTime: 0,
-  }));
+  }), () => queryClient);
 
 /** Signed out: forget everything fetched, and where the poll was. */
 export function forget() {
