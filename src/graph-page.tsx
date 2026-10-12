@@ -89,16 +89,6 @@ export function GraphPage() {
   return (
     <section class="graph-page" aria-label="Graph">
       <div class="graph-holder" ref={holder} />
-      <div class="graph-tools">
-        <div class="row">
-          <button type="button" class="fit" title="Bring every note into view" onClick={() => view.fit(true)}>
-            Fit
-          </button>
-        </div>
-        <Show when={graph()}>
-          <FilterPanel />
-        </Show>
-      </div>
       <p class="graph-status" aria-live="polite">
         {status()}
       </p>
@@ -108,7 +98,12 @@ export function GraphPage() {
 
 // The filters. Every control shows the current filters, so clearing them or
 // new notes arriving never rebuilds the panel or moves focus.
-function FilterPanel() {
+/** Brings every note of the global graph into view. */
+export function fitGraph() {
+  globalView?.fit(true);
+}
+
+export function FilterPanel(props: { always?: boolean }) {
   const c = createMemo(() => choices(graph()!));
   const count = (kind: string) => graph()!.nodes.filter((n) => n.kind === kind).length;
   const change = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
@@ -116,7 +111,12 @@ function FilterPanel() {
     setFilters((f) => ({ ...f, [list]: on ? f[list].filter((v) => v !== value) : [...f[list], value] }));
 
   return (
-    <details class="filters" open={recall("filters-open", false)} on:toggle={(e) => remember("filters-open", e.currentTarget.open)}>
+    <details
+      class="filters"
+      classList={{ always: props.always }}
+      open={props.always || recall("filters-open", false)}
+      on:toggle={(e) => !props.always && remember("filters-open", e.currentTarget.open)}
+    >
       <summary>
         Filters <span class="on">{isFiltered(filters()) ? "on" : ""}</span>
       </summary>
