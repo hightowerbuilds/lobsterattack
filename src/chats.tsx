@@ -5,9 +5,9 @@
 // search. Text from chats always goes in as text; the only HTML inserted is
 // a message the server rendered (render.ts).
 
-import { createEffect, createSignal, For, Match, on, Show, Switch } from "solid-js";
+import { createEffect, createMemo, createSignal, For, Match, on, Show, Switch } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { chatHref, chatQuery, chatsQuery, type ChatDetail, type ChatList } from "./store.ts";
+import { chatHref, chatQuery, chatsQuery, sessionsQuery, type ChatDetail, type ChatList } from "./store.ts";
 
 // Kept while the page is open, so coming back from a chat finds the same search.
 const [query, setQuery] = createSignal("");
@@ -15,6 +15,15 @@ const [query, setQuery] = createSignal("");
 export function ChatsPage() {
   let typing: number | undefined;
   const list = chatsQuery(query);
+  // Each session's review (its category and concepts), from the session graph.
+  const sessions = sessionsQuery();
+  const reviewed = createMemo(() => {
+    const m = new Map<string, { category: string; concepts: string[] }>();
+    for (const n of sessions.data?.nodes ?? []) {
+      if (n.kind === "session") m.set(n.id.slice("session:".length), { category: n.folder, concepts: n.drivers });
+    }
+    return m;
+  });
   const [shown, setShown] = createStore<ChatList>({ total: 0, sessions: [] });
   const [loaded, setLoaded] = createSignal(false);
   createEffect(() => {
@@ -72,6 +81,14 @@ export function ChatsPage() {
                       </span>
                       <Show when={chat.snippet !== chat.title && chat.snippet}>
                         <span class="snippet">{chat.snippet}</span>
+                      </Show>
+                      <Show when={reviewed().get(chat.id)}>
+                        {(r) => (
+                          <span class="review-badges">
+                            <span class="badge category">{r().category}</span>
+                            <For each={r().concepts}>{(c) => <span class="badge concept">{c}</span>}</For>
+                          </span>
+                        )}
                       </Show>
                     </a>
                   </li>
