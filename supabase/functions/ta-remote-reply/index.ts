@@ -1,6 +1,8 @@
 // tiny-axe → where a message stands, and its finished reply.
 //
-//   { id, status: "working" }                    picked up
+//   { id, status: "working" }                    taken up: only from pending, so
+//                                                when two tiny-axes are online, one
+//                                                takes it and the other gets 409
 //   { id, status: "answered", body }             the reply (redacted on the machine)
 //   { id, status: "failed", body? }              gave up, with why
 //
@@ -21,6 +23,22 @@ serve(async (req) => {
   const text = String(input.body ?? "").trim().slice(0, MAX_BODY);
   if (!STATUSES.has(status)) return json(req, 400, { error: "status is working, answered or failed." });
   if (status === "answered" && !text) return json(req, 400, { error: "An answer needs a body." });
+
+  if (status === "working") {
+    // In one statement, so only one taker wins.
+    const { data: taken, error } = await admin
+      .from("buster_ta_remote")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("owner_id", owner)
+      .eq("role", "user")
+      .eq("status", "pending")
+      .select(COLUMNS)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!taken) return json(req, 409, { error: "That message is taken already." });
+    return json(req, 200, { message: taken, reply: null });
+  }
 
   const { data: message, error: findError } = await admin
     .from("buster_ta_remote")

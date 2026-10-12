@@ -114,6 +114,7 @@ check("ta-remote-pending lists it", pending.status === 200 && pending.body.messa
 // 4. The machine picks it up, streams a piece, answers.
 const working = await call("ta-remote-reply", token, { id, status: "working" });
 check("marked working", working.status === 200 && working.body.reply === null);
+check("taken only once (a second tiny-axe gets 409)", (await call("ta-remote-reply", token, { id, status: "working" })).status === 409);
 check("the browser sees it's working", !!(await until(() => browserSeen.find((s) => s.event === "message" && s.payload.id === id && s.payload.status === "working"))));
 
 await machineChannel.send({ type: "broadcast", event: "delta", payload: { reply_to: id, text: "po" } });

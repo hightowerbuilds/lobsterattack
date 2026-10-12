@@ -5,6 +5,7 @@
 import { createEffect, createSignal, For, Match, on, Show, Switch, type JSX } from "solid-js";
 import { Axe } from "./axe.tsx";
 import { ChatsPage } from "./chats.tsx";
+import { RemoteChat } from "./remote.tsx";
 import { LocalGraph } from "./graph-page.tsx";
 import {
   blocked,
@@ -151,17 +152,12 @@ export function HomePage() {
             <List entries={lately(overview.folders)} meta={(e) => e.last_seen?.slice(0, 10) ?? ""} empty="Nothing seen yet." />
           </Match>
           <Match when={tab() === "Chat"}>
-            <p class="lede">Talk to tiny-axe from here. Coming: it will reach your tiny-axe wherever it's running.</p>
-            <div class="chat-box" aria-label="Chat with tiny-axe">
-              <div class="chat-log">
-                <p class="empty">Nothing yet.</p>
-              </div>
-              <form class="chat-send" onSubmit={(e) => e.preventDefault()}>
-                <input type="text" placeholder="Ask tiny-axe…" aria-label="Message" disabled />
-                <button type="submit" class="button" disabled>
-                  Send
-                </button>
-              </form>
+            <div class="chat-tab">
+              <p class="lede">
+                Talk to your tiny-axe, wherever it's running. It answers in a 🌐 chat on that machine; anything that needs
+                a yes there is refused for now.
+              </p>
+              <RemoteChat />
             </div>
           </Match>
           <Match when={tab() === "Sessions"}>
