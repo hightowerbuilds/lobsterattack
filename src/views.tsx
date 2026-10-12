@@ -3,7 +3,7 @@
 // rendered (render.ts).
 
 import { createEffect, For, Match, on, Show, Switch, type JSX } from "solid-js";
-import { LocalGraph } from "./graph-page.tsx";
+import { dims, LocalGraph, setDims } from "./graph-page.tsx";
 import {
   blocked,
   byTitle,
@@ -55,17 +55,37 @@ function List(props: { entries: Entry[]; meta: (e: Entry) => string; empty: stri
   );
 }
 
-export function OverviewPage() {
-  document.title = "Overview · tiny-axe know-how";
+/** The home page: what tiny-axe knows, in numbers and lists, and the one
+ * link to the graph (in 2D or 3D, as chosen here; the graph lays itself out
+ * meanwhile). */
+export function HomePage() {
+  document.title = "tiny-axe know-how";
   const notes = (folder: string) => overview.folders.find((f) => f.name === folder)?.notes ?? [];
   const s = () => overview.summary!;
 
   return (
     <div class="home">
       <h1>What tiny-axe knows</h1>
-      <p class="lede">
-        Every site, page and decision path tiny-axe has used on the web, from its own records. <a href="/">Open the graph</a>.
-      </p>
+      <p class="lede">Every site, page and decision path tiny-axe has used on the web, from its own records.</p>
+      <div class="graph-card">
+        <a class="button open-graph" href="/graph">
+          Open the graph
+        </a>
+        <div class="mode" role="group" aria-label="Open it in">
+          <For each={[2, 3] as const}>
+            {(d) => (
+              <button type="button" value={String(d)} aria-pressed={dims() === d} onClick={() => setDims(d)}>
+                {d}D
+              </button>
+            )}
+          </For>
+        </div>
+        <Show when={overview.summary}>
+          <span class="graph-count">
+            {s().sites + s().pages + s().controls + s().paths + s().tools + s().tasks + s().notes} notes in the graph
+          </span>
+        </Show>
+      </div>
       <Show when={overview.summary}>
         <div class="tiles">
           <Tile n={s().sites} what="sites" />

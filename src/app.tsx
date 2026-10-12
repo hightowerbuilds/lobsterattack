@@ -33,7 +33,7 @@ import {
   sorted,
   vaultQuery,
 } from "./store.ts";
-import { Item, NotePage, OverviewPage } from "./views.tsx";
+import { HomePage, Item, NotePage } from "./views.tsx";
 
 // Dark by default; the switch's choice is remembered in this browser. Set
 // before anything draws, so a light page never starts dark.
@@ -107,9 +107,9 @@ function Page() {
     return r.kind === "chat" ? r.id : null;
   };
   return (
-    <Switch fallback={<GraphPage />}>
-      <Match when={route().kind === "overview"}>
-        <OverviewPage />
+    <Switch fallback={<HomePage />}>
+      <Match when={route().kind === "graph"}>
+        <GraphPage />
       </Match>
       <Match when={note()}>{(id) => <NotePage id={id()} />}</Match>
       <Match when={route().kind === "chats"}>
@@ -155,11 +155,11 @@ function Sidebar() {
         </span>
       </header>
       <nav class="views" aria-label="Views">
-        <a href="/" aria-current={route().kind === "graph" ? "page" : undefined}>
-          Graph
+        <a href="/" aria-current={route().kind === "home" ? "page" : undefined}>
+          Home
         </a>
-        <a href="/overview" aria-current={route().kind === "overview" ? "page" : undefined}>
-          Overview
+        <a href="/graph" aria-current={route().kind === "graph" ? "page" : undefined}>
+          Graph
         </a>
         <a href="/chats" aria-current={["chats", "chat"].includes(route().kind) ? "page" : undefined}>
           Chats

@@ -94,7 +94,7 @@ const TOOLS: Record<string, Tool> = {
     async run({ focus, page }, { origin }) {
       if (page === "chats") return text(`${origin}/chats`);
       if (typeof focus === "string" && focus !== "") return text(`${origin}/note/${encodeURIComponent(focus)}`);
-      return text(`${origin}/`);
+      return text(`${origin}/graph`);
     },
   },
 
@@ -133,7 +133,7 @@ const TOOLS: Record<string, Tool> = {
       if (!deps.accounts) throw new Refused("this site can't make sign-in links");
       const token = await deps.accounts().signinToken(owner);
       const path =
-        page === "chats" ? "/chats" : typeof focus === "string" && focus !== "" ? `/note/${encodeURIComponent(focus)}` : "/";
+        page === "chats" ? "/chats" : typeof focus === "string" && focus !== "" ? `/note/${encodeURIComponent(focus)}` : "/graph";
       return text(`${origin}${path}#signin=${encodeURIComponent(token)}`);
     },
   },

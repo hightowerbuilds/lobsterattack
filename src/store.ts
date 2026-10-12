@@ -282,7 +282,7 @@ export function touches(id: string, ids: string[]) {
 
 export type Route =
   | { kind: "graph"; focus: string | null }
-  | { kind: "overview" }
+  | { kind: "home" }
   | { kind: "note"; id: string }
   | { kind: "chats" }
   | { kind: "chat"; id: string };
@@ -298,13 +298,14 @@ export function route(): Route {
   if (note) return { kind: "note", id: decodeURIComponent(note[1]) };
   const chat = url.pathname.match(/^\/chats\/(.+)$/);
   if (chat) return { kind: "chat", id: decodeURIComponent(chat[1]) };
-  if (url.pathname === "/overview") return { kind: "overview" };
   if (url.pathname === "/chats") return { kind: "chats" };
-  return { kind: "graph", focus: url.searchParams.get("focus") };
+  // The graph; and the home page, which was the graph (old links with ?focus=).
+  if (url.pathname === "/graph" || url.searchParams.has("focus")) return { kind: "graph", focus: url.searchParams.get("focus") };
+  return { kind: "home" };
 }
 
 export const ROUTES = (path: string) =>
-  path === "/" || path === "/overview" || path.startsWith("/note/") || path === "/chats" || path.startsWith("/chats/");
+  path === "/" || path === "/graph" || path === "/overview" || path.startsWith("/note/") || path === "/chats" || path.startsWith("/chats/");
 
 export function go(to: string) {
   if (to !== here()) history.pushState(null, "", to);
@@ -320,7 +321,7 @@ window.addEventListener("popstate", () => setHref(here()));
 
 export const noteHref = (id: string) => `/note/${encodeURIComponent(id)}`;
 export const chatHref = (id: string) => `/chats/${encodeURIComponent(id)}`;
-export const graphHref = (id: string) => `/?focus=${encodeURIComponent(id)}`;
+export const graphHref = (id: string) => `/graph?focus=${encodeURIComponent(id)}`;
 export const blocked = (e: { kind: string; gate?: string | null }) =>
   e.kind === "path" && (e.gate === "refused" || e.gate === "denied");
 

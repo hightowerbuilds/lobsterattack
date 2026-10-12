@@ -195,6 +195,7 @@ describe("/api/mcp", () => {
     expect((await call("graph_search", { q: " " })).error).toBe(true);
     expect((await call("graph_link", { focus: "shop.example" })).text).toBe("http://localhost/note/shop.example");
     expect((await call("graph_link", { page: "chats" })).text).toBe("http://localhost/chats");
+    expect((await call("graph_link")).text).toBe("http://localhost/graph");
   });
 
   test("chat_push keeps what the page shows, redacted, never the context", async () => {
@@ -263,7 +264,7 @@ describe("/api/mcp", () => {
 
   test("signin_link: a one-time sign-in in the link's fragment, for the key's owner", async () => {
     const { call } = await setup();
-    expect((await call("signin_link")).text).toBe("http://localhost/#signin=one%2Btime%2Fowner-1");
+    expect((await call("signin_link")).text).toBe("http://localhost/graph#signin=one%2Btime%2Fowner-1");
     expect((await call("signin_link", { focus: "shop.example" })).text).toBe(
       "http://localhost/note/shop.example#signin=one%2Btime%2Fowner-1",
     );

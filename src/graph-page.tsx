@@ -28,7 +28,9 @@ const [depth, setDepth] = createSignal(Math.min(3, Math.max(1, recall<number>("l
 let globalView: GraphView | null = null;
 let localView: GraphView | null = null;
 
-function setDims(next: Dims) {
+export { dims };
+
+export function setDims(next: Dims) {
   setDimsTo(next);
   remember("graph-dims", next);
   globalView?.setDims(next);
