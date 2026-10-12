@@ -1,4 +1,4 @@
-// The page before anything else: sign in with the email and password the
+// The page before anything else: sign in with the username and password the
 // site's owner gave you.
 
 import { createSignal, Show } from "solid-js";
@@ -12,7 +12,7 @@ export function SignIn() {
     event.preventDefault();
     const form = new FormData(event.currentTarget as HTMLFormElement);
     setBusy(true);
-    setError(await signIn(String(form.get("email") ?? "").trim(), String(form.get("password") ?? "")));
+    setError(await signIn(String(form.get("username") ?? ""), String(form.get("password") ?? "")));
     setBusy(false);
   }
 
@@ -26,8 +26,16 @@ export function SignIn() {
           What tiny-axe has learned, and every chat with it. Sign in with the account you were given.
         </p>
         <label>
-          Email
-          <input name="email" type="email" autocomplete="username" required disabled={!configured} />
+          Username
+          <input
+            name="username"
+            type="text"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck={false}
+            required
+            disabled={!configured}
+          />
         </label>
         <label>
           Password

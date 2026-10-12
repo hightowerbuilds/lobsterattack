@@ -6,7 +6,8 @@ tasks it did) and every chat with it, for the people its owner lets in. The
 plan is tiny-axe's `docs/plan-lobsterattack.md`.
 
 - **Site** (`src/`): SolidJS + Three.js, tiny-axe's local viewer moved here.
-  Sign in with Supabase email + password; nothing shows without it. Polls
+  Sign in with a username and password (Supabase Auth underneath: a username
+  stands for `<username>@users.tiny-axe.invalid`); nothing shows without it. Polls
   `/api/changes` to keep up.
 - **API** (`api/`): Hono on Vercel Edge.
   - `/api/mcp`: an MCP server (streamable HTTP, plain JSON) for tiny-axe,
@@ -33,12 +34,12 @@ bun run test                  # API tests, in memory
 
 ## Keys and viewers
 
-Accounts are made in the Supabase dashboard (Authentication → Users → Add
-user, Auto Confirm). Then:
-
 ```
-bun run tinyaxe-key key you@example.com        # tiny-axe's key, shown once; only its hash is kept
-bun run tinyaxe-key let-in friend@example.com you@example.com
-bun run tinyaxe-key list you@example.com
+bun run tinyaxe-key add-user luke                  # asks for the password; an owner
+bun run tinyaxe-key add-user sam --owner luke      # a viewer of luke's site
+bun run tinyaxe-key password luke                  # a new password
+bun run tinyaxe-key key luke                       # tiny-axe's key, shown once; only its hash is kept
+bun run tinyaxe-key let-in sam luke
+bun run tinyaxe-key list luke
 bun run tinyaxe-key revoke <key id>
 ```
