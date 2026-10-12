@@ -4,12 +4,11 @@
 
 import { createEffect, createSignal, For, Match, on, Show, Switch, type JSX } from "solid-js";
 import { Axe } from "./axe.tsx";
+import { ChatsPage } from "./chats.tsx";
 import { LocalGraph } from "./graph-page.tsx";
 import {
   blocked,
   byTitle,
-  chatHref,
-  chatsQuery,
   graphHref,
   noteHref,
   noteQuery,
@@ -105,7 +104,8 @@ export function HomePage() {
   document.title = "tiny-axe know-how";
   const notes = (folder: string) => overview.folders.find((f) => f.name === folder)?.notes ?? [];
   const s = () => overview.summary!;
-  const was = recall<string>("home-tab", "Chat");
+  // /chats, the old sessions page, is the Sessions tab now.
+  const was = location.pathname === "/chats" ? "Sessions" : recall<string>("home-tab", "Chat");
   const saved = (was === "Chats" ? "Sessions" : was === "Lately" ? "Overview" : was) as Tab;
   const [tab, setTab] = createSignal<Tab>(TABS.includes(saved) ? saved : "Chat");
   const pick = (t: Tab) => {
@@ -165,7 +165,7 @@ export function HomePage() {
             </div>
           </Match>
           <Match when={tab() === "Sessions"}>
-            <RecentChats />
+            <ChatsPage />
           </Match>
           <Match when={tab() === "Sites"}>
             <List entries={[...notes("Sites")].sort((a, b) => (b.seen ?? 0) - (a.seen ?? 0))} meta={(e) => `${e.seen ?? 0} actions`} empty="No sites yet." />
@@ -221,43 +221,6 @@ function SearchBox() {
       />
       <Show when={query()}>{(q) => <Results query={q()} />}</Show>
     </div>
-  );
-}
-
-// The last chats, newest first, from the chat list query (shared with /chats).
-function RecentChats() {
-  const list = chatsQuery(() => "");
-  const recent = () =>
-    (list.data?.sessions ?? [])
-      .flatMap((s) => s.chats)
-      .sort((a, b) => (a.updated < b.updated ? 1 : -1))
-      .slice(0, 20);
-  return (
-    <Switch>
-      <Match when={list.error}>{(error) => <p class="problem">{error().message}</p>}</Match>
-      <Match when={list.data && recent().length === 0}>
-        <p class="empty">No chats yet.</p>
-      </Match>
-      <Match when={list.data}>
-        <ul>
-          <For each={recent()}>
-            {(c) => (
-              <li>
-                <a class="item" href={chatHref(c.id)} title={c.title}>
-                  <span class="label">{c.title || "Untitled chat"}</span>
-                  <span class="meta">
-                    {c.messages} messages · {c.updated.slice(0, 10)}
-                  </span>
-                </a>
-              </li>
-            )}
-          </For>
-        </ul>
-        <p class="more">
-          <a href="/chats">All sessions ({list.data!.total})</a>
-        </p>
-      </Match>
-    </Switch>
   );
 }
 

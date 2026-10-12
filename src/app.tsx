@@ -10,7 +10,7 @@ import { QueryClientProvider } from "@tanstack/solid-query";
 import { createEffect, createSignal, Match, on, Show, Switch } from "solid-js";
 import { render } from "solid-js/web";
 import { session, signOut } from "./auth.ts";
-import { ChatPage, ChatsPage } from "./chats.tsx";
+import { ChatPage } from "./chats.tsx";
 import { SignIn } from "./signin.tsx";
 import "./style.css";
 import { FilterPanel, fitGraph, GraphPage, warmGraph } from "./graph-page.tsx";
@@ -117,9 +117,6 @@ function Page() {
         <GraphPage />
       </Match>
       <Match when={note()}>{(id) => <NotePage id={id()} />}</Match>
-      <Match when={route().kind === "chats"}>
-        <ChatsPage />
-      </Match>
       <Match when={chat()}>{(id) => <ChatPage id={id()} />}</Match>
     </Switch>
   );
@@ -183,9 +180,6 @@ function Views() {
       </a>
       <a href="/graph" aria-current={route().kind === "graph" ? "page" : undefined}>
         Graph
-      </a>
-      <a href="/chats" aria-current={["chats", "chat"].includes(route().kind) ? "page" : undefined}>
-        Sessions
       </a>
     </nav>
   );

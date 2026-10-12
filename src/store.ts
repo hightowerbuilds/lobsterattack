@@ -286,7 +286,6 @@ export type Route =
   | { kind: "graph"; focus: string | null }
   | { kind: "home" }
   | { kind: "note"; id: string }
-  | { kind: "chats" }
   | { kind: "chat"; id: string };
 
 const here = () => location.pathname + location.search;
@@ -300,7 +299,6 @@ export function route(): Route {
   if (note) return { kind: "note", id: decodeURIComponent(note[1]) };
   const chat = url.pathname.match(/^\/chats\/(.+)$/);
   if (chat) return { kind: "chat", id: decodeURIComponent(chat[1]) };
-  if (url.pathname === "/chats") return { kind: "chats" };
   // The graph; and the home page, which was the graph (old links with ?focus=).
   if (url.pathname === "/graph" || url.searchParams.has("focus")) return { kind: "graph", focus: url.searchParams.get("focus") };
   return { kind: "home" };
