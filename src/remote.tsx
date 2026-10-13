@@ -13,6 +13,15 @@
 // Replies are Markdown, shown through the same safe renderer as the saved
 // chats (raw HTML as text, web links only, no images); your own messages
 // are shown as text.
+//
+// Approvals (tiny-axe docs/plan-chrome-purchases.md, P3): when tiny-axe
+// needs a yes for something in this chat (a purchase, a tool call, sending
+// to Claude, a command), it shows here as a card. Approving takes your
+// approval PIN (set in tiny-axe with /remote pin) and, for a purchase, the
+// exact total. The PIN never leaves this page: it's turned into a one-time
+// proof for this approval, this decision and this total (PBKDF2, then
+// HMAC), which tiny-axe checks on your machine. Three wrong PINs switch
+// approvals off until you switch them on again at the machine.
 
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createEffect, createSignal, For, on, onCleanup, Show } from "solid-js";
@@ -31,6 +40,54 @@ type Message = {
 
 type Live = { text?: string; status?: string };
 
+type ApprovalBody = {
+  title: string;
+  lines?: string[];
+  checks?: { ok: boolean; text: string }[];
+  // A purchase: the total to type, and how it's shown.
+  total?: string;
+  total_text?: string;
+};
+
+type Approval = {
+  id: string;
+  message_id: string | null;
+  kind: "purchase" | "tool" | "model" | "command";
+  body: ApprovalBody;
+  nonce: string;
+  salt: string;
+  iterations: number;
+  status: "pending" | "answered" | "closed";
+  decision?: string | null;
+  outcome: string | null;
+  created_at: string;
+  expires_at: string;
+};
+
+const OUTCOMES: Record<string, string> = {
+  approved: "Approved: tiny-axe went ahead.",
+  denied: "Denied: tiny-axe didn't do it.",
+  wrong_pin: "Wrong PIN: tiny-axe didn't do it.",
+  expired: "Expired: tiny-axe didn't do it.",
+  withdrawn: "No longer needed.",
+  refused: "tiny-axe refused it (see its reply).",
+};
+
+const hex = (bytes: ArrayBuffer) => [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+/** The one-time proof tiny-axe checks: HMAC(PBKDF2(pin, salt), id|nonce|approve|total). */
+async function proofFor(a: Approval, pin: string, total: string): Promise<string> {
+  const enc = new TextEncoder();
+  const base = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: enc.encode(a.salt), iterations: a.iterations },
+    base,
+    256,
+  );
+  const key = await crypto.subtle.importKey("raw", bits, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return hex(await crypto.subtle.sign("HMAC", key, enc.encode(`${a.id}|${a.nonce}|approve|${total}`)));
+}
+
 async function call(fn: string, body: Record<string, unknown>): Promise<any> {
   if (!supabase) throw new Error("This site isn't set up to sign in yet.");
   const { data, error } = await supabase.functions.invoke(fn, { body });
@@ -46,6 +103,7 @@ export function RemoteChat() {
   const [messages, setMessages] = createStore<Message[]>([]);
   // What tiny-axe is doing about each message it's on, and its reply so far.
   const [live, setLive] = createStore<Record<string, Live>>({});
+  const [approvals, setApprovals] = createStore<Approval[]>([]);
   const [online, setOnline] = createSignal(false);
   const [channelState, setChannelState] = createSignal<"joining" | "joined" | "down">("joining");
   const [problem, setProblem] = createSignal<string | null>(null);
@@ -63,10 +121,17 @@ export function RemoteChat() {
     if (m.role === "assistant" && m.reply_to) setLive(m.reply_to, undefined!);
   };
 
+  const upsertApproval = (a: Approval) => {
+    const at = approvals.findIndex((x) => x.id === a.id);
+    if (at >= 0) setApprovals(at, reconcile(a));
+    else setApprovals([...approvals, a]);
+  };
+
   const load = async () => {
     try {
-      const { messages: kept } = await call("ta-remote-history", {});
+      const { messages: kept, approvals: asked } = await call("ta-remote-history", {});
       setMessages(reconcile((kept as Message[]).sort(byTime), { key: "id" }));
+      setApprovals(reconcile((asked ?? []) as Approval[], { key: "id" }));
       setProblem(null);
     } catch (e) {
       setProblem((e as Error).message);
@@ -90,6 +155,7 @@ export function RemoteChat() {
           channel = client.channel(`remote:${owner}`, { config: { private: true } });
           channel
             .on("broadcast", { event: "message" }, ({ payload }) => upsert(payload as Message))
+            .on("broadcast", { event: "approval" }, ({ payload }) => upsertApproval(payload as Approval))
             .on("broadcast", { event: "draft" }, ({ payload }) => setLive(payload.reply_to, (was) => ({ ...was, text: payload.text })))
             .on("broadcast", { event: "status" }, ({ payload }) => setLive(payload.reply_to, (was) => ({ ...was, status: payload.text })))
             .on("presence", { event: "sync" }, () => setOnline("tiny-axe" in channel!.presenceState()))
@@ -117,7 +183,7 @@ export function RemoteChat() {
   let pinned = true;
   createEffect(
     on(
-      () => [messages.length, JSON.stringify(live)],
+      () => [messages.length, approvals.length, JSON.stringify(live)],
       () => {
         if (log && pinned) queueMicrotask(() => (log!.scrollTop = log!.scrollHeight));
       },
@@ -142,6 +208,8 @@ export function RemoteChat() {
       input?.focus();
     }
   };
+
+  const cardsFor = (id: string | null) => approvals.filter((a) => a.message_id === id);
 
   const replyTo = (id: string) => messages.find((m) => m.role === "assistant" && m.reply_to === id);
 
@@ -191,6 +259,7 @@ export function RemoteChat() {
                   </Show>
                   <Show when={m.role === "user" && waiting(m)}>{(why) => <div class="note">{why()}</div>}</Show>
                 </li>
+                <For each={m.role === "user" ? cardsFor(m.id) : []}>{(a) => <ApprovalCard approval={a} onUpdate={upsertApproval} />}</For>
                 <Show when={m.role === "user" && m.status === "working" && online() && !replyTo(m.id)}>
                   <li class="message assistant live" aria-live="polite">
                     <div class="who">tiny-axe</div>
@@ -203,6 +272,7 @@ export function RemoteChat() {
               </>
             )}
           </For>
+          <For each={cardsFor(null)}>{(a) => <ApprovalCard approval={a} onUpdate={upsertApproval} />}</For>
         </ol>
       </div>
       <Show when={problem()}>{(p) => <p class="problem chat-problem">{p()}</p>}</Show>
@@ -224,5 +294,98 @@ export function RemoteChat() {
         </button>
       </form>
     </div>
+  );
+}
+
+function ApprovalCard(props: { approval: Approval; onUpdate: (a: Approval) => void }) {
+  const a = () => props.approval;
+  const [pin, setPin] = createSignal("");
+  const [total, setTotal] = createSignal("");
+  const [busy, setBusy] = createSignal<"approve" | "deny" | null>(null);
+  const [problem, setProblem] = createSignal<string | null>(null);
+  const [now, setNow] = createSignal(Date.now());
+  const timer = setInterval(() => setNow(Date.now()), 5000);
+  onCleanup(() => clearInterval(timer));
+
+  const expired = () => a().status === "pending" && Date.parse(a().expires_at) <= now();
+  const open = () => a().status === "pending" && !expired();
+  const purchase = () => a().kind === "purchase";
+
+  const answer = async (decision: "approve" | "deny") => {
+    if (busy()) return;
+    setProblem(null);
+    if (decision === "approve") {
+      if (pin().length < 6) return setProblem("Type your approval PIN (set with /remote pin in tiny-axe).");
+      if (purchase() && !total().trim()) return setProblem(`Type the total, ${a().body.total ?? ""}, to buy.`);
+    }
+    setBusy(decision);
+    try {
+      const body: Record<string, unknown> = { id: a().id, decision };
+      if (decision === "approve") {
+        const typed = purchase() ? total().trim() : "";
+        body.total = typed;
+        body.proof = await proofFor(a(), pin(), typed);
+      }
+      const { approval } = await call("ta-remote-approve", body);
+      // The answer is in; the PIN goes.
+      setPin("");
+      props.onUpdate({ ...(approval as Approval), decision });
+    } catch (e) {
+      setProblem((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const state = () => {
+    if (a().status === "closed") return OUTCOMES[a().outcome ?? ""] ?? "Closed.";
+    if (a().status === "answered") return a().decision === "deny" ? "Denied; telling tiny-axe…" : "Sent; tiny-axe is checking it…";
+    if (expired()) return OUTCOMES.expired;
+    return null;
+  };
+
+  return (
+    <li class="message approval" classList={{ purchase: purchase(), done: !open() }}>
+      <div class="who">{purchase() ? "tiny-axe wants to buy" : "tiny-axe asks"}</div>
+      <div class="approval-title">{a().body.title}</div>
+      <For each={a().body.lines ?? []}>{(line) => <div class="approval-line">{line}</div>}</For>
+      <Show when={(a().body.checks ?? []).length > 0}>
+        <ul class="approval-checks">
+          <For each={a().body.checks}>{(c) => <li classList={{ ok: c.ok, failed: !c.ok }}>{c.ok ? "✓" : "✗"} {c.text}</li>}</For>
+        </ul>
+      </Show>
+      <Show when={open()} fallback={<div class="note">{state()}</div>}>
+        <form
+          class="approval-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            answer("approve");
+          }}
+        >
+          <Show when={purchase()}>
+            <label>
+              Type the total{a().body.total_text ? ` (${a().body.total_text})` : ""}
+              <input inputmode="decimal" autocomplete="off" value={total()} onInput={(e) => setTotal(e.currentTarget.value)} />
+            </label>
+          </Show>
+          <label>
+            Approval PIN
+            <input type="password" autocomplete="off" value={pin()} onInput={(e) => setPin(e.currentTarget.value)} />
+          </label>
+          <div class="approval-buttons">
+            <button type="submit" class="button approve" disabled={busy() !== null}>
+              {busy() === "approve" ? "Checking…" : purchase() ? "Buy" : "Approve"}
+            </button>
+            <button type="button" class="button" disabled={busy() !== null} onClick={() => answer("deny")}>
+              {busy() === "deny" ? "Denying…" : "Deny"}
+            </button>
+          </div>
+          <div class="note">
+            Waits until {new Date(a().expires_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}; then it's a no.
+          </div>
+        </form>
+      </Show>
+      <Show when={problem()}>{(p) => <div class="note problem-note">{p()}</div>}</Show>
+    </li>
   );
 }

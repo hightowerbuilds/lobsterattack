@@ -114,3 +114,10 @@ export async function ownerForSession(token: string): Promise<string | null> {
 
 export const COLUMNS = "id, role, body, status, reply_to, created_at, updated_at";
 export const MAX_BODY = 20000;
+
+// Approvals (0011): what the page may see; the answer (with its proof) is
+// only ever read back by tiny-axe, with its key.
+export const APPROVAL_COLUMNS =
+  "id, message_id, kind, body, nonce, salt, iterations, status, outcome, created_at, expires_at, updated_at";
+export const APPROVAL_KINDS = new Set(["purchase", "tool", "model", "command"]);
+export const OUTCOMES = new Set(["approved", "denied", "wrong_pin", "expired", "withdrawn", "refused"]);

@@ -10,8 +10,12 @@
 // a message, sees it picked up, gets a streamed piece, then the reply. Then the
 // refusals: no session, someone else's channel, no key.
 //
-// It leaves one answered "remote-check" message and its reply in the owner's
-// history.
+// Then approvals (0011, tiny-axe P3): the machine opens one with its key,
+// the browser answers it once with a proof, only the key reads the proof
+// back, and the session can't open, read or close approvals.
+//
+// It leaves one answered "remote-check" message and its reply, and one
+// closed approval, in the owner's history.
 
 import { createClient, type RealtimeChannel, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -89,7 +93,7 @@ const machineChannel = machine.channel(topic, { config: { private: true, presenc
 machineChannel.on("broadcast", { event: "message" }, ({ payload }) => machineSeen.push(payload));
 
 const browserChannel = browser.channel(topic, { config: { private: true, presence: { key: "browser" } } });
-for (const event of ["message", "delta"]) {
+for (const event of ["message", "delta", "approval"]) {
   browserChannel.on("broadcast", { event }, ({ payload }) => browserSeen.push({ event, payload }));
 }
 let online = false;
@@ -133,7 +137,45 @@ check("it's no longer pending", after.status === 200 && !after.body.messages?.so
 const history = await call("ta-remote-history", token);
 check("ta-remote-history has both", history.status === 200 && history.body.messages?.filter((m: any) => m.id === id || m.reply_to === id).length === 2);
 
-// 5. Refusals.
+// 5. Approvals: opened with the key, answered by the browser, read back with the key.
+const opened = await call("ta-remote-approval", key, {
+  action: "open",
+  message_id: id,
+  kind: "tool",
+  body: { title: "remote-check: use a tool", lines: ["a line"] },
+  nonce: "remote-check-nonce-0123456789",
+  salt: "remote-check-salt-0123456789",
+  iterations: 600000,
+  expires_in: 120,
+});
+const approval = opened.body.approval;
+check("ta-remote-approval opens one with the key", opened.status === 200 && approval?.status === "pending", `HTTP ${opened.status}`);
+check("the browser gets the card on the channel", !!(await until(() => browserSeen.find((s) => s.event === "approval" && s.payload.id === approval?.id))));
+check("the session can't open one", (await call("ta-remote-approval", token, { action: "open" })).status === 401);
+check("the session can't read one back", (await call("ta-remote-approval", token, { action: "get", id: approval?.id })).status === 401);
+check("ta-remote-approve needs a proof to approve", (await call("ta-remote-approve", token, { id: approval?.id, decision: "approve" })).status === 400);
+check("ta-remote-approve needs a session", (await call("ta-remote-approve", key, { id: approval?.id, decision: "deny" })).status === 401);
+
+const proof = "ab".repeat(32);
+const approved = await call("ta-remote-approve", token, { id: approval?.id, decision: "approve", proof, total: "" });
+check("ta-remote-approve saves the answer", approved.status === 200 && approved.body.approval?.status === "answered", `HTTP ${approved.status}`);
+check("its reply leaves the proof out", !JSON.stringify(approved.body).includes(proof));
+check("answered only once", (await call("ta-remote-approve", token, { id: approval?.id, decision: "deny" })).status === 409);
+const answeredCard = await until(() => browserSeen.find((s) => s.event === "approval" && s.payload.id === approval?.id && s.payload.status === "answered"));
+check("the channel says it's answered, without the proof", !!answeredCard && !JSON.stringify(answeredCard).includes(proof));
+
+const readBack = await call("ta-remote-approval", key, { action: "get", id: approval?.id });
+check("the key reads the answer back", readBack.status === 200 && readBack.body.approval?.answer?.proof === proof);
+const closed = await call("ta-remote-approval", key, { action: "close", id: approval?.id, outcome: "refused" });
+check("the key closes it", closed.status === 200 && closed.body.approval?.outcome === "refused");
+check("closed only once", (await call("ta-remote-approval", key, { action: "close", id: approval?.id, outcome: "approved" })).status === 409);
+const withApprovals = await call("ta-remote-history", token);
+check(
+  "ta-remote-history lists it, without the answer",
+  withApprovals.body.approvals?.some((a: any) => a.id === approval?.id && !("answer" in a)),
+);
+
+// 6. Refusals.
 const stranger = client(null);
 check("no session: can't join the channel", (await join(stranger.channel(topic, { config: { private: true } }))) !== "SUBSCRIBED");
 
@@ -145,7 +187,7 @@ check("ta-remote-send without a session: 401", (await call("ta-remote-send", nul
 check("ta-remote-send with the key instead of a session: 401", (await call("ta-remote-send", key, { body: "x" })).status === 401);
 check("ta-remote-token with a made-up key: 401", (await call("ta-remote-token", "x".repeat(48))).status === 401);
 
-// 6. A new session signs the old one out.
+// 7. A new session signs the old one out.
 const renewed = await call("ta-remote-token", key, { previous: token });
 check("ta-remote-token renews", renewed.status === 200 && renewed.body.access_token !== token);
 await call("ta-remote-token", key, { previous: renewed.body.access_token });
