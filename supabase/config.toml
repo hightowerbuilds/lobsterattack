@@ -413,7 +413,8 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 
 # tiny-axe's remote chat (supabase/functions/ta-remote-*). Each function checks
 # who's asking itself: ta-remote-token takes tiny-axe's agent key (not a JWT),
-# the rest a session of a tiny-axe account.
+# the rest a session of a tiny-axe account. ta-remote-approval takes the agent
+# key too, so the site login alone can't open approvals or read their answers.
 [functions.ta-remote-token]
 verify_jwt = false
 
@@ -427,4 +428,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.ta-remote-history]
+verify_jwt = false
+
+[functions.ta-remote-approval]
+verify_jwt = false
+
+[functions.ta-remote-approve]
 verify_jwt = false
