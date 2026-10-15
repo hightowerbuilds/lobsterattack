@@ -53,7 +53,13 @@ a:hover { text-decoration: underline; }
 /* The top bar */
 
 .topbar { height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 24px; padding: 0 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
-.topbar .brand { flex: 1; margin: 0; gap: 12px; }
+.topbar .brand { flex: 1; margin: 0; gap: 12px; justify-content: flex-start; }
+.topbar .brand-tools { margin-left: auto; }
+/* An agent's page, one link each, beside the name. */
+.agents { display: flex; gap: 2px; }
+.agents a { padding: 3px 10px; border-radius: var(--radius); color: var(--muted); font-size: 14px; white-space: nowrap; }
+.agents a:hover { color: var(--text); background: var(--raised); text-decoration: none; }
+.agents a[aria-current="page"] { color: var(--text); background: var(--raised); }
 
 .brand { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
 .brand a { color: var(--text); font-weight: 650; font-size: 16px; }
@@ -101,13 +107,16 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
 .axe-name { text-align: center; font-weight: 700; font-size: 14px; margin-top: 2px; }
 .axe-name .g { color: #7ed373; }
 .axe-name .o { color: #f5a34e; }
+.mark-b pre { min-height: calc(14 * 11px * 1.05); }
+.axe-name .r { color: #d64034; }
+.axe-name .gl { color: #f2c14e; }
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 16px; overflow-x: auto; overflow-y: hidden; }
-.tabs button {
-  background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
-  padding: 8px 12px; color: var(--muted); font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap;
+.tabs a {
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  padding: 8px 12px; color: var(--muted); font-size: 14px; white-space: nowrap;
 }
-.tabs button:hover { color: var(--text); }
-.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+.tabs a:hover { color: var(--text); text-decoration: none; }
+.tabs a[aria-current="page"] { color: var(--text); border-bottom-color: var(--accent); }
 .home-pane { flex: 1; min-height: 0; overflow-y: auto; }
 .chat-box { display: flex; flex-direction: column; height: 100%; min-height: 320px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
 .chat-log { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; }
@@ -118,6 +127,8 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
 .chat-tab { display: flex; flex-direction: column; height: 100%; }
 .home .chat-tab .lede { flex: none; margin-bottom: 12px; }
 .chat-tab .chat-box { flex: 1; height: auto; min-height: 260px; }
+.chat-status .chat-state { flex: 1; min-width: 0; }
+.chat-status .new-chat { flex: none; padding: 2px 10px; font-size: 12px; }
 .chat-status { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }
 .online-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); flex: none; }
 .online-dot.on { background: var(--validated); box-shadow: 0 0 0 3px color-mix(in srgb, var(--validated) 25%, transparent); }
@@ -212,11 +223,41 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
 .message .body table { display: block; max-width: 100%; overflow-x: auto; }
 .activity { padding: 0 14px; color: var(--faint); font-family: var(--mono); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 
+/* The phone menu: the ☰ in the top bar opens it over the whole page. */
+.menu-button { display: none; padding: 2px 10px; font-size: 18px; line-height: 1.4; }
+#menu {
+  box-sizing: border-box; width: 100%; max-width: none; height: 100dvh; max-height: none;
+  margin: 0; padding: 0 16px 24px; border: 0; background: var(--bg); color: var(--text);
+}
+#menu::backdrop { background: color-mix(in srgb, var(--bg) 60%, transparent); }
+.menu-head { display: flex; align-items: center; justify-content: space-between; height: 44px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
+.menu-title { font-weight: 650; font-size: 16px; }
+.menu-title span { color: var(--muted); font-weight: 400; }
+.menu-close { padding: 2px 10px; font-size: 16px; }
+.menu-agents, .menu-views { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.menu-agents a { padding: 10px 12px; border-radius: var(--radius); color: var(--text); font-size: 18px; font-weight: 600; }
+.menu-views a, .menu-views button { padding: 10px 12px; border: 0; border-radius: var(--radius); background: none; color: var(--muted); font-size: 16px; text-align: left; }
+.menu-agents a:hover, .menu-views a:hover, .menu-views button:hover { background: var(--raised); text-decoration: none; }
+.menu-agents a[aria-current="page"], .menu-views a[aria-current="page"] { background: var(--raised); color: var(--text); }
+.menu-tools { display: flex; gap: 8px; padding-top: 16px; }
+.menu-tools button { padding: 6px 14px; }
+
 /* Phones */
 
 @media (max-width: 760px) {
   main { padding: 20px 16px 48px; }
-  .topbar { gap: 12px; padding: 0 12px; overflow-x: auto; }
+  .topbar { gap: 12px; padding: 0 12px; }
+  .topbar .agents, .topbar .brand-tools { display: none; }
+  .menu-button { display: inline-block; margin-left: auto; }
+  /* The views are in the menu; the page is the view. */
+  .home .tabs { display: none; }
+  main.fixed { height: calc(100dvh - 44px); padding: 12px 12px 8px; }
+  .home-head { justify-content: center; margin-bottom: 8px; }
+  .axe pre { font-size: 7px; min-height: calc(13 * 7px * 1.05); }
+  .mark-b pre { min-height: calc(14 * 7px * 1.05); }
+  .axe-name { font-size: 12px; }
+  .home .chat-tab .lede { display: none; }
+  .chat-tab .chat-box { min-height: 0; }
   .chat-row .label { white-space: normal; overflow-wrap: anywhere; }
 }
 

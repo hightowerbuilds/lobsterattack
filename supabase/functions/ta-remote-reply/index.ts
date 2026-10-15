@@ -42,7 +42,7 @@ serve(async (req) => {
 
   const { data: message, error: findError } = await admin
     .from("buster_ta_remote")
-    .select("id, status")
+    .select("id, status, conversation")
     .eq("id", id)
     .eq("owner_id", owner)
     .eq("role", "user")
@@ -57,7 +57,7 @@ serve(async (req) => {
   if (text && status !== "working") {
     const { data, error } = await admin
       .from("buster_ta_remote")
-      .insert({ owner_id: owner, role: "assistant", body: text, status, reply_to: id })
+      .insert({ owner_id: owner, role: "assistant", body: text, status, reply_to: id, conversation: message.conversation })
       .select(COLUMNS)
       .single();
     if (error) throw new Error(error.message);

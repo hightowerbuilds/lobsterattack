@@ -10,6 +10,11 @@
 // history is fetched again whenever the channel (re)joins, so nothing missed
 // while it was down stays missing.
 //
+// The tab opens on an empty chat; the first message starts a conversation
+// (0012), and "New chat" starts another. Only the conversation you're in is
+// shown. It's kept while this browser tab is open, so a reload doesn't lose
+// it; a new visit starts empty. Earlier conversations are in the history.
+//
 // Replies are Markdown, shown through the same safe renderer as the saved
 // chats (raw HTML as text, web links only, no images); your own messages
 // are shown as text.
@@ -35,6 +40,8 @@ type Message = {
   body: string;
   status: "pending" | "working" | "answered" | "failed";
   reply_to: string | null;
+  /** Null for messages from before conversations. */
+  conversation: string | null;
   created_at: string;
 };
 
@@ -97,6 +104,30 @@ async function call(fn: string, body: Record<string, unknown>): Promise<any> {
   throw new Error(reason?.error ?? error.message);
 }
 
+// The conversation the Chat tab is on; null for a new, empty one.
+const KEPT = "remote-conversation";
+const [conversation, setConversationTo] = createSignal<string | null>(
+  (() => {
+    try {
+      return sessionStorage.getItem(KEPT);
+    } catch {
+      return null;
+    }
+  })(),
+);
+function setConversation(id: string | null) {
+  setConversationTo(id);
+  try {
+    if (id) sessionStorage.setItem(KEPT, id);
+    else sessionStorage.removeItem(KEPT);
+  } catch {
+    // Kept only as a convenience.
+  }
+}
+
+/** Starts a new, empty chat. */
+export const newChat = () => setConversation(null);
+
 const byTime = (a: Message, b: Message) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0);
 
 export function RemoteChat() {
@@ -112,8 +143,15 @@ export function RemoteChat() {
   const [sending, setSending] = createSignal(false);
   let log: HTMLDivElement | undefined;
   let input: HTMLTextAreaElement | undefined;
+  // Messages from the channel for a conversation the page doesn't know yet:
+  // the one a send is starting, until its answer says which it is.
+  let held: Message[] = [];
 
   const upsert = (m: Message) => {
+    if (m.conversation !== conversation()) {
+      if (sending()) held = [...held.filter((h) => h.id !== m.id), m].slice(-20);
+      return;
+    }
     const at = messages.findIndex((x) => x.id === m.id);
     if (at >= 0) setMessages(at, reconcile(m));
     else setMessages([...messages, m].sort(byTime));
@@ -128,9 +166,12 @@ export function RemoteChat() {
   };
 
   const load = async () => {
+    const showing = conversation();
     try {
-      const { messages: kept, approvals: asked } = await call("ta-remote-history", {});
-      setMessages(reconcile((kept as Message[]).sort(byTime), { key: "id" }));
+      // Without a conversation there's nothing to show yet but the approvals.
+      const { messages: kept, approvals: asked } = await call("ta-remote-history", showing ? { conversation: showing } : {});
+      if (showing !== conversation()) return;
+      setMessages(reconcile(showing ? (kept as Message[]).filter((m) => m.conversation === showing).sort(byTime) : [], { key: "id" }));
       setApprovals(reconcile((asked ?? []) as Approval[], { key: "id" }));
       setProblem(null);
     } catch (e) {
@@ -179,6 +220,21 @@ export function RemoteChat() {
     ),
   );
 
+  // New chat: an empty log, and the box ready to type in.
+  createEffect(
+    on(
+      conversation,
+      (now) => {
+        if (now !== null) return;
+        setMessages([]);
+        setLive(reconcile({}));
+        setProblem(null);
+        input?.focus();
+      },
+      { defer: true },
+    ),
+  );
+
   // Follow the conversation down, unless you've scrolled up to read.
   let pinned = true;
   createEffect(
@@ -196,8 +252,13 @@ export function RemoteChat() {
     if (!body || sending()) return;
     setSending(true);
     try {
-      const { message } = await call("ta-remote-send", { body });
-      upsert(message as Message);
+      const { message } = (await call("ta-remote-send", { body, conversation: conversation() ?? undefined })) as {
+        message: Message;
+      };
+      if (conversation() === null) setConversation(message.conversation);
+      upsert(message);
+      for (const m of held) upsert(m);
+      held = [];
       setText("");
       setProblem(null);
       pinned = true;
@@ -209,7 +270,9 @@ export function RemoteChat() {
     }
   };
 
-  const cardsFor = (id: string | null) => approvals.filter((a) => a.message_id === id);
+  // An approval for a message in this conversation, or for none while it waits.
+  const cardsFor = (id: string | null) =>
+    approvals.filter((a) => a.message_id === id && (id !== null || a.status === "pending"));
 
   const replyTo = (id: string) => messages.find((m) => m.role === "assistant" && m.reply_to === id);
 
@@ -225,7 +288,7 @@ export function RemoteChat() {
     <div class="chat-box" aria-label="Chat with tiny-axe">
       <div class="chat-status">
         <span classList={{ "online-dot": true, on: online() }} aria-hidden="true" />
-        <span>
+        <span class="chat-state">
           {online()
             ? "tiny-axe is online"
             : channelState() === "joining"
@@ -234,6 +297,9 @@ export function RemoteChat() {
                 ? "not connected; trying again"
                 : "tiny-axe is offline: messages wait until it's back (/remote on in tiny-axe)"}
         </span>
+        <button type="button" class="new-chat" disabled={messages.length === 0} onClick={newChat}>
+          New chat
+        </button>
       </div>
       <div
         class="chat-log"
@@ -246,7 +312,7 @@ export function RemoteChat() {
           <p class="empty">Loading…</p>
         </Show>
         <Show when={loaded() && messages.length === 0}>
-          <p class="empty">Nothing yet. Ask tiny-axe something; it answers from your machine.</p>
+          <p class="empty">A new chat. Ask tiny-axe something; it answers from your machine.</p>
         </Show>
         <ol class="transcript">
           <For each={messages}>

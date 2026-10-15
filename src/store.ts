@@ -146,26 +146,49 @@ export function chatsChanged(ids: string[]) {
   });
 }
 
-// Where the page is: the home page (the chat list, or the Chat tab), or one
-// chat at /chats/<id>. /chats is the home page on its chat list.
+// Where the page is: an agent's Chat (/tiny-axe, /busterclaw; / is the agent
+// you were on last), tiny-axe's chat history (/chats, where tiny-axe links),
+// or one of its chats (/chats/<id>).
 
-export type Route = { kind: "home" } | { kind: "chat"; id: string };
+export const AGENTS = ["tiny-axe", "busterclaw"] as const;
+export type Agent = (typeof AGENTS)[number];
+export type View = "chat" | "history";
+
+export type Route = { kind: "home"; agent: Agent; view: View } | { kind: "chat"; id: string };
 
 const here = () => location.pathname + location.search;
 // Not deduplicated: following a link to where the page is still counts.
 export const [href, setHref] = createSignal(here(), { equals: false });
 
+const lastAgent = (): Agent => {
+  const saved = recall<string>("agent", "tiny-axe");
+  return AGENTS.find((a) => a === saved) ?? "tiny-axe";
+};
+
 export function route(): Route {
   const url = new URL(href(), location.origin);
   const chat = url.pathname.match(/^\/chats\/(.+)$/);
   if (chat) return { kind: "chat", id: decodeURIComponent(chat[1]) };
-  return { kind: "home" };
+  if (url.pathname === "/chats") return { kind: "home", agent: "tiny-axe", view: "history" };
+  const agent = AGENTS.find((a) => url.pathname === `/${a}`);
+  return { kind: "home", agent: agent ?? lastAgent(), view: "chat" };
 }
 
-export const ROUTES = (path: string) => path === "/" || path === "/chats" || path.startsWith("/chats/");
+/** The agent the page is about: a chat is tiny-axe's. */
+export const agent = (): Agent => {
+  const r = route();
+  return r.kind === "home" ? r.agent : "tiny-axe";
+};
+
+export const ROUTES = (path: string) =>
+  path === "/" || path === "/chats" || path.startsWith("/chats/") || AGENTS.some((a) => path === `/${a}`);
+
+/** Whether the phone menu is open. */
+export const [menuOpen, setMenuOpen] = createSignal(false);
 
 export function go(to: string) {
   if (to !== here()) history.pushState(null, "", to);
+  setMenuOpen(false);
   setHref(here());
   window.scrollTo(0, 0);
   document.getElementById("main")?.focus({ preventScroll: true });

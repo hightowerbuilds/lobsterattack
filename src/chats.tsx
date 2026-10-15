@@ -95,7 +95,7 @@ export function ChatPage(props: { id: string }) {
     const latest = chat.error ? null : chat.data;
     if (!latest) return;
     setShown("chat", reconcile(latest, { key: "id" }));
-    document.title = `${latest.title || "Untitled chat"} · tiny-axe chats`;
+    document.title = `${latest.title || "Untitled chat"} · lobster attack`;
   });
 
   return (
