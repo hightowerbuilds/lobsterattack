@@ -263,10 +263,12 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
 
 /* Signing in */
 .signin { min-height: 100%; display: grid; place-items: center; padding: 24px 16px; }
-.signin form { width: 100%; max-width: 340px; display: grid; gap: 14px; }
-.signin h1 { margin: 0; font-size: 20px; }
-.signin h1 span { color: var(--muted); font-weight: normal; }
-.signin .about { margin: 0; color: var(--muted); }
+.signin form { width: 100%; max-width: 340px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+/* The lobster is wider than the form; it stays centred over it. */
+.lobster { justify-self: center; line-height: 1; }
+/* 64 columns: as big as 13px, smaller on a narrow phone so it always fits. */
+.lobster { --cell: min(13px, calc((100vw - 24px) / 64 / 0.61)); }
+.lobster pre { margin: 0 0 8px; font: 700 var(--cell)/1.05 var(--mono); white-space: pre; min-height: calc(24 * var(--cell) * 1.05); }
 .signin label { display: grid; gap: 6px; color: var(--muted); font-size: 13px; }
 .signin input {
   padding: 8px 10px;
@@ -276,7 +278,9 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
   color: var(--text);
   font: inherit;
 }
-.signin button[type="submit"] { padding: 8px 10px; }
+.signin button[type="submit"] { justify-self: center; padding: 8px 18px; }
+/* Square corners on the sign-in page. */
+.signin input, .signin button { border-radius: 0; }
 .signin .problem { margin: 0; }
 #signout { padding: 2px 8px; font-size: 12px; }
 

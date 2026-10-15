@@ -1,10 +1,10 @@
 // BusterClaw's mark: an Olde English B, as an illuminated capital in red ink
 // and gold leaf. The letter is UnifrakturMaguntia's B, drawn once in a browser
 // and sampled into a grid of ink (0–9 per character cell); here that ink is
-// lit as a relief by a light circling it, so its edges catch the gold. The
-// frames are worked out once, then cycled, like the axe's.
+// lit as a relief by a light circling it, so its edges catch the gold
+// (played by ascii.tsx, like the axe).
 
-import { createSignal, For, onCleanup, onMount } from "solid-js";
+import { AsciiArt, runs, type Frame } from "./ascii.tsx";
 
 // How much ink each cell holds, 0–9.
 const INK = [
@@ -39,8 +39,6 @@ const GOLD: RGB = [242, 193, 78];
 
 type RGB = [number, number, number];
 type V3 = [number, number, number];
-/** A run of same-coloured characters on a row. */
-type Run = { text: string; colour: string | null };
 
 const ink = (row: number, col: number) => (INK[row]?.[col] ?? 0) / 9;
 
@@ -60,69 +58,36 @@ function normal(row: number, col: number): V3 {
 
 const NORMALS = INK.map((row, r) => row.map((_, c) => normal(r, c)));
 
-function frame(index: number): Run[][] {
+function frame(index: number): Frame {
   // The light goes round the letter, a little above it.
   const turn = (index * 2 * Math.PI) / FRAMES;
   const light = unit([Math.cos(turn) * 0.8, Math.sin(turn) * 0.8, 0.6]);
   const half = unit([light[0], light[1], light[2] + 1]);
 
-  const rows: Run[][] = [];
-  for (let r = 0; r < ROWS; r++) {
-    const runs: Run[] = [];
-    for (let c = 0; c < COLS; c++) {
-      const amount = INK[r][c];
-      let ch = " ";
-      let colour: string | null = null;
-      if (amount > 0) {
+  return INK.map((row, r) =>
+    runs(
+      row.map((amount, c): [string, string | null] => {
+        if (amount === 0) return [" ", null];
         const n = NORMALS[r][c];
         const diffuse = Math.max(dot(n, light), 0);
         const gloss = Math.pow(Math.max(dot(n, half), 0), 18);
         const shade = 0.35 + 0.65 * Math.min(0.25 + 0.75 * diffuse, 1);
         const gold = Math.min(gloss * 1.4, 1);
         const mix = (i: number) => Math.round(RED[i] * shade * (1 - gold) + GOLD[i] * gold);
-        ch = RAMP[amount];
-        colour = `rgb(${mix(0)},${mix(1)},${mix(2)})`;
-      }
-      const last = runs[runs.length - 1];
-      if (last && last.colour === colour) last.text += ch;
-      else runs.push({ text: ch, colour });
-    }
-    rows.push(runs);
-  }
-  return rows;
+        return [RAMP[amount], `rgb(${mix(0)},${mix(1)},${mix(2)})`];
+      }),
+    ),
+  );
 }
-
-let frames: Run[][][] | null = null;
 
 /** The B, with "busterclaw" under it. */
 export function BlackletterB() {
-  frames ??= Array.from({ length: FRAMES }, (_, i) => frame(i));
-  const all = frames;
-  const [shown, setShown] = createSignal(all[0]);
-  let timer: number | undefined;
-  onMount(() => {
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let i = 0;
-    timer = window.setInterval(() => setShown(all[(i = (i + 1) % FRAMES)]), FRAME_MS);
-  });
-  onCleanup(() => clearInterval(timer));
-
   return (
-    <div class="axe mark-b" aria-label="BusterClaw" role="img">
-      <pre aria-hidden="true">
-        <For each={shown()}>
-          {(row) => (
-            <>
-              <For each={row}>{(run) => <span style={run.colour ? { color: run.colour } : undefined}>{run.text}</span>}</For>
-              {"\n"}
-            </>
-          )}
-        </For>
-      </pre>
+    <AsciiArt make={frame} count={FRAMES} frameMs={FRAME_MS} label="BusterClaw" class="axe mark-b">
       <div class="axe-name">
         <span class="r">buster</span>
         <span class="gl">claw</span>
       </div>
-    </div>
+    </AsciiArt>
   );
 }

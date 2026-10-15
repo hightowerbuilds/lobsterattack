@@ -1,9 +1,8 @@
 // tiny-axe's welcome axe, as on its TUI: a double-bit axe modelled as a
 // signed-distance field, ray-cast cell by cell into ASCII and lit from the
-// front left, turning about its handle. The frames are worked out once,
-// in the browser, a few per idle moment, and then just cycled.
+// front left, turning about its handle (played by ascii.tsx).
 
-import { createSignal, For, onCleanup, onMount } from "solid-js";
+import { AsciiArt, runs, type Frame } from "./ascii.tsx";
 
 const COLS = 44;
 const ROWS = 13;
@@ -23,8 +22,6 @@ const STEEL: RGB = [205, 220, 225];
 type RGB = [number, number, number];
 type V3 = [number, number, number];
 type Part = "head" | "handle";
-/** A run of same-coloured characters on a row. */
-type Run = { text: string; colour: string | null };
 
 // The axe, in its own space: the handle up the y axis, the head across x.
 
@@ -125,73 +122,23 @@ function cell(col: number, row: number, rot: Rot): [string, string | null] {
   return [RAMP[Math.round(light * (RAMP.length - 1))], `rgb(${shade(base[0])},${shade(base[1])},${shade(base[2])})`];
 }
 
-function frame(index: number): Run[][] {
+function frame(index: number): Frame {
   const rot = rotation(index);
-  const rows: Run[][] = [];
+  const rows: Frame = [];
   for (let row = 0; row < ROWS; row++) {
-    const runs: Run[] = [];
-    for (let col = 0; col < COLS; col++) {
-      const [ch, colour] = cell(col, row, rot);
-      const last = runs[runs.length - 1];
-      if (last && last.colour === colour) last.text += ch;
-      else runs.push({ text: ch, colour });
-    }
-    rows.push(runs);
+    rows.push(runs(Array.from({ length: COLS }, (_, col) => cell(col, row, rot))));
   }
   return rows;
 }
 
-let frames: Run[][][] | null = null;
-let making: Promise<Run[][][]> | null = null;
-
-// All the frames, a few per idle moment the first time.
-function allFrames(): Promise<Run[][][]> {
-  if (frames) return Promise.resolve(frames);
-  making ??= new Promise((resolve) => {
-    const made: Run[][][] = [];
-    const idle = (window as unknown as { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback ?? ((f) => setTimeout(f, 0));
-    const step = () => {
-      const until = performance.now() + 12;
-      while (made.length < FRAMES && performance.now() < until) made.push(frame(made.length));
-      if (made.length < FRAMES) idle(step);
-      else resolve((frames = made));
-    };
-    idle(step);
-  });
-  return making;
-}
-
 /** The turning axe, with "tiny-axe" under it. */
 export function Axe() {
-  const [shown, setShown] = createSignal<Run[][] | null>(null);
-  let timer: number | undefined;
-  onMount(() => {
-    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    void allFrames().then((all) => {
-      let i = 0;
-      setShown(all[0]);
-      if (still) return;
-      timer = window.setInterval(() => setShown(all[(i = (i + 1) % FRAMES)]), FRAME_MS);
-    });
-  });
-  onCleanup(() => clearInterval(timer));
-
   return (
-    <div class="axe" aria-label="tiny-axe" role="img">
-      <pre aria-hidden="true">
-        <For each={shown() ?? []}>
-          {(row) => (
-            <>
-              <For each={row}>{(run) => <span style={run.colour ? { color: run.colour } : undefined}>{run.text}</span>}</For>
-              {"\n"}
-            </>
-          )}
-        </For>
-      </pre>
+    <AsciiArt make={frame} count={FRAMES} frameMs={FRAME_MS} label="tiny-axe" class="axe">
       <div class="axe-name">
         <span class="g">tiny</span>
         <span class="o">-axe</span>
       </div>
-    </div>
+    </AsciiArt>
   );
 }

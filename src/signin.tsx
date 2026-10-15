@@ -1,8 +1,9 @@
-// The page before anything else: sign in with the username and password the
-// site's owner gave you.
+// The page before anything else: the spinning lobster, and a username and
+// password to sign in with.
 
 import { createSignal, Show } from "solid-js";
 import { configured, linkProblem, signIn } from "./auth.ts";
+import { Lobster } from "./lobster.tsx";
 
 export function SignIn() {
   const [error, setError] = createSignal<string | null>(null);
@@ -18,13 +19,8 @@ export function SignIn() {
 
   return (
     <main class="signin">
-      <form onSubmit={submit} aria-describedby="signin-about">
-        <h1>
-          lobster <span>attack</span>
-        </h1>
-        <p id="signin-about" class="about">
-          Your agents, and every chat with them. Sign in with the account you were given.
-        </p>
+      <form onSubmit={submit} aria-label="Sign in to Lobster Attack">
+        <Lobster />
         <label>
           Username
           <input
@@ -42,7 +38,7 @@ export function SignIn() {
           <input name="password" type="password" autocomplete="current-password" required disabled={!configured} />
         </label>
         <button type="submit" disabled={busy() || !configured}>
-          {busy() ? "Signing in…" : "Sign in"}
+          {busy() ? "Entering…" : "Enter"}
         </button>
         <Show when={error() ?? linkProblem() ?? (configured ? null : "This site isn't set up to sign in yet.")}>
           {(message) => (
