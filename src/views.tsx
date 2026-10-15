@@ -45,7 +45,7 @@ export function HomePage() {
             <div class="chat-tab">
               <p class="lede">
                 Talk to your tiny-axe, wherever it's running. It answers in a 🌐 chat on that machine; anything that needs
-                a yes there is refused for now.
+                a yes shows up here as a card, to approve with your PIN (set it with /remote pin in tiny-axe).
               </p>
               <RemoteChat />
             </div>
