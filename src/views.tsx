@@ -4,8 +4,8 @@
 
 import { For, Match, Switch } from "solid-js";
 import { Axe } from "./axe.tsx";
-import { BlackletterB } from "./blackletter.tsx";
 import { ChatsPage } from "./chats.tsx";
+import { Hook } from "./hook.tsx";
 import { RemoteChat } from "./remote.tsx";
 import { agent, route } from "./store.ts";
 
@@ -91,7 +91,7 @@ function BusterClawPage() {
   return (
     <div class="home">
       <header class="home-head">
-        <BlackletterB />
+        <Hook />
       </header>
       <Tabs />
       <div class="home-pane">

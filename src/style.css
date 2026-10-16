@@ -107,9 +107,9 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
 .axe-name { text-align: center; font-weight: 700; font-size: 14px; margin-top: 2px; }
 .axe-name .g { color: #7ed373; }
 .axe-name .o { color: #f5a34e; }
-.mark-b pre { min-height: calc(14 * 11px * 1.05); }
-.axe-name .r { color: #d64034; }
-.axe-name .gl { color: #f2c14e; }
+/* BusterClaw's hook: 50 columns by 32 rows, twice the axe's height. */
+.hook { display: inline-block; line-height: 1; }
+.hook pre { margin: 0; font: 700 11px/1.05 var(--mono); white-space: pre; min-height: calc(32 * 11px * 1.05); }
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 16px; overflow-x: auto; overflow-y: hidden; }
 .tabs a {
   border-bottom: 2px solid transparent; margin-bottom: -1px;
@@ -254,7 +254,7 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
   main.fixed { height: calc(100dvh - 44px); padding: 12px 12px 8px; }
   .home-head { justify-content: center; margin-bottom: 8px; }
   .axe pre { font-size: 7px; min-height: calc(13 * 7px * 1.05); }
-  .mark-b pre { min-height: calc(14 * 7px * 1.05); }
+  .hook pre { font-size: 6px; min-height: calc(32 * 6px * 1.05); }
   .axe-name { font-size: 12px; }
   .home .chat-tab .lede { display: none; }
   .chat-tab .chat-box { min-height: 0; }
