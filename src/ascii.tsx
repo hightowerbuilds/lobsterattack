@@ -19,26 +19,34 @@ export function runs(cells: Iterable<[string, string | null]>): Run[] {
   return out;
 }
 
-const made = new Map<(i: number) => Frame, Promise<Frame[]>>();
+type Making = { first: Promise<Frame>; all: Promise<Frame[]> };
+const made = new Map<(i: number) => Frame, Making>();
 
-// Every frame, a few per idle moment the first time.
-function allFrames(make: (i: number) => Frame, count: number): Promise<Frame[]> {
-  let all = made.get(make);
-  if (!all) {
-    all = new Promise((resolve) => {
+// Every frame, a few per idle moment the first time; the first as soon as
+// it's made, to stand until the rest are.
+function frames(make: (i: number) => Frame, count: number): Making {
+  let making = made.get(make);
+  if (!making) {
+    let first!: (f: Frame) => void;
+    const firstMade = new Promise<Frame>((resolve) => (first = resolve));
+    const all = new Promise<Frame[]>((resolve) => {
       const done: Frame[] = [];
       const idle = (window as unknown as { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback ?? ((f) => setTimeout(f, 0));
       const step = () => {
         const until = performance.now() + 12;
-        while (done.length < count && performance.now() < until) done.push(make(done.length));
+        while (done.length < count && performance.now() < until) {
+          done.push(make(done.length));
+          if (done.length === 1) first(done[0]);
+        }
         if (done.length < count) idle(step);
         else resolve(done);
       };
       idle(step);
     });
-    made.set(make, all);
+    making = { first: firstMade, all };
+    made.set(make, making);
   }
-  return all;
+  return making;
 }
 
 export function AsciiArt(props: {
@@ -53,7 +61,9 @@ export function AsciiArt(props: {
   let timer: number | undefined;
   onMount(() => {
     const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    void allFrames(props.make, props.count).then((all) => {
+    const making = frames(props.make, props.count);
+    void making.first.then((f) => setShown((now) => now ?? f));
+    void making.all.then((all) => {
       let i = 0;
       setShown(all[0]);
       if (still) return;

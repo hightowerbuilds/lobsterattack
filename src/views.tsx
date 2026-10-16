@@ -84,15 +84,16 @@ function TinyAxePage() {
   );
 }
 
-/** BusterClaw's page. Its Chat waits for BusterClaw to be connected to this
- * site, which isn't built yet. */
+/** BusterClaw's page: its hook fills the window, behind a see-through Chat.
+ * The Chat waits for BusterClaw to be connected to this site, which isn't
+ * built yet. */
 function BusterClawPage() {
   document.title = "BusterClaw · lobster attack";
   return (
-    <div class="home">
-      <header class="home-head">
+    <div class="home buster">
+      <div class="backdrop" aria-hidden="true">
         <Hook />
-      </header>
+      </div>
       <Tabs />
       <div class="home-pane">
         <div class="chat-tab">
