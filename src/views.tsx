@@ -54,15 +54,15 @@ function Tabs() {
 }
 
 /** tiny-axe's page, filling the window without scrolling it (a long view
- * scrolls within itself). */
+ * scrolls within itself), its axe filling the window behind it. */
 function TinyAxePage() {
   document.title = "TinyAxe · lobster attack";
 
   return (
-    <div class="home">
-      <header class="home-head">
+    <div class="home stage">
+      <div class="backdrop" aria-hidden="true">
         <Axe />
-      </header>
+      </div>
       <Tabs />
       <div class="home-pane">
         <Switch>
@@ -90,7 +90,7 @@ function TinyAxePage() {
 function BusterClawPage() {
   document.title = "BusterClaw · lobster attack";
   return (
-    <div class="home buster">
+    <div class="home stage">
       <div class="backdrop" aria-hidden="true">
         <Hook />
       </div>

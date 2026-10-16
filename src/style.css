@@ -101,19 +101,16 @@ main { min-width: 0; padding: 32px clamp(16px, 5vw, 56px) 64px; outline: none; }
 /* The home page fills the window and never scrolls it; its tab does. */
 main.fixed { height: calc(100vh - 44px); box-sizing: border-box; padding-top: 24px; padding-bottom: 24px; overflow: hidden; }
 main.fixed .home { height: 100%; display: flex; flex-direction: column; }
-.home-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
-.axe { display: inline-block; line-height: 1; }
-.axe pre { margin: 0; font: 700 11px/1.05 var(--mono); white-space: pre; min-height: calc(13 * 11px * 1.05); }
-.axe-name { text-align: center; font-weight: 700; font-size: 14px; margin-top: 2px; }
-.axe-name .g { color: #7ed373; }
-.axe-name .o { color: #f5a34e; }
-/* BusterClaw's hook fills the window under the top bar (54 columns by 64
-   rows, as big as fits), behind the page, whose Chat is see-through. */
+/* An agent's mark (tiny-axe's axe, BusterClaw's hook) fills the window
+   under the top bar, as big as fits, behind the page, whose Chat is
+   see-through. The axe is 64 columns by 64 rows, the hook 54 by 64. */
 .backdrop { position: fixed; inset: 44px 0 0; z-index: 0; display: grid; place-items: center; overflow: hidden; pointer-events: none; }
-.hook { --cell: min(calc((100dvh - 44px) / 64 / 1.05), calc(100vw / 54 / 0.6)); line-height: 1; }
-.hook pre { margin: 0; font: 700 var(--cell)/1.05 var(--mono); white-space: pre; min-height: calc(64 * var(--cell) * 1.05); }
-.buster > :not(.backdrop) { position: relative; z-index: 1; }
-.buster .chat-box { background: transparent; }
+.axe, .hook { line-height: 1; }
+.axe { --cell: min(calc((100dvh - 44px) / 64 / 1.05), calc(100vw / 64 / 0.6)); }
+.hook { --cell: min(calc((100dvh - 44px) / 64 / 1.05), calc(100vw / 54 / 0.6)); }
+.axe pre, .hook pre { margin: 0; font: 700 var(--cell)/1.05 var(--mono); white-space: pre; min-height: calc(64 * var(--cell) * 1.05); }
+.stage > :not(.backdrop) { position: relative; z-index: 1; }
+.stage .chat-box { background: transparent; }
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 16px; overflow-x: auto; overflow-y: hidden; }
 .tabs a {
   border-bottom: 2px solid transparent; margin-bottom: -1px;
@@ -256,9 +253,6 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
   /* The views are in the menu; the page is the view. */
   .home .tabs { display: none; }
   main.fixed { height: calc(100dvh - 44px); padding: 12px 12px 8px; }
-  .home-head { justify-content: center; margin-bottom: 8px; }
-  .axe pre { font-size: 7px; min-height: calc(13 * 7px * 1.05); }
-  .axe-name { font-size: 12px; }
   .home .chat-tab .lede { display: none; }
   .chat-tab .chat-box { min-height: 0; }
   .chat-row .label { white-space: normal; overflow-wrap: anywhere; }
