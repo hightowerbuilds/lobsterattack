@@ -14,7 +14,7 @@
   --validated: #57c27c;
   --blocked: #e5605a;
 
-  --radius: 6px;
+  --radius: 0;
   --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
 }
@@ -68,7 +68,7 @@ body {
 
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
-:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius); }
 
 /* The top bar */
 
@@ -127,7 +127,7 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
 .tabs a:hover { color: var(--text); text-decoration: none; }
 .tabs a[aria-current="page"] { color: var(--text); border-bottom-color: var(--accent); }
 .home-pane { flex: 1; min-height: 0; overflow-y: auto; }
-.chat-box { display: flex; flex-direction: column; height: 100%; min-height: 320px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--chat-background, var(--panel)); }
+.chat-box { display: flex; flex-direction: column; height: 100%; min-height: 320px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--chat-background, var(--panel)); }
 .chat-log { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; }
 .chat-status, .chat-send { background: color-mix(in srgb, var(--panel) 85%, transparent); }
 .chat-send { display: flex; align-items: flex-end; gap: 8px; padding: 10px; border-top: 1px solid var(--line); }
@@ -147,7 +147,7 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
 .chat-status .chat-state { flex: 1; min-width: 0; }
 .chat-status .new-chat { flex: none; padding: 2px 10px; font-size: 12px; }
 .chat-status { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }
-.online-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); flex: none; }
+.online-dot { width: 9px; height: 9px; border-radius: var(--radius); background: var(--faint); flex: none; }
 .online-dot.on { background: var(--validated); box-shadow: 0 0 0 3px color-mix(in srgb, var(--validated) 25%, transparent); }
 .chat-log .transcript { padding-bottom: 4px; }
 .message .body.plain { white-space: pre-wrap; padding-bottom: 6px; }
@@ -163,7 +163,7 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
 .body h2 { font-size: 17px; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
 .body p, .body ul, .body ol { margin: 0 0 12px; }
 .body li { margin: 2px 0; }
-.body code { font-family: var(--mono); font-size: 0.9em; background: var(--raised); padding: 1px 4px; border-radius: 4px; }
+.body code { font-family: var(--mono); font-size: 0.9em; background: var(--raised); padding: 1px 4px; border-radius: var(--radius); }
 .body table { border-collapse: collapse; margin: 0 0 12px; font-size: 14px; }
 .body th, .body td { border: 1px solid var(--line); padding: 4px 12px; text-align: left; }
 .body th { background: var(--panel); font-weight: 600; }
@@ -219,7 +219,7 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
 /* The user's messages stand apart from tiny-axe's replies; what it did in
    between is a quiet line. */
 .transcript { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
-.message { min-width: 0; padding: 8px 14px 2px; border: 1px solid var(--line); border-radius: 10px; }
+.message { min-width: 0; padding: 8px 14px 2px; border: 1px solid var(--line); border-radius: var(--radius); }
 .message.user { margin-left: clamp(0px, 8vw, 72px); background: var(--raised); border-color: transparent; }
 .message.assistant { background: var(--panel); }
 .message .who { margin-bottom: 2px; color: var(--muted); font-size: 12px; font-weight: 600; }
