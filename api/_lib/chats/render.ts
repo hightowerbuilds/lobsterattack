@@ -4,7 +4,7 @@
 // Ordinary Markdown images still do not fetch external resources.
 
 import { Marked, type Tokens } from "marked";
-import { discussionCard, drawing } from "./visuals.ts";
+import { discussionCard, drawing } from "./visuals.js";
 
 export function escapeHtml(text: string): string {
   return text

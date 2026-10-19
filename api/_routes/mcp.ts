@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { discussionCard, drawing, VISUAL_GUIDE } from "../_lib/chats/visuals.ts";
+import { discussionCard, drawing, VISUAL_GUIDE } from "../_lib/chats/visuals.js";
 import { CHAT_ID } from "../_lib/chats/history.js";
 import { chatSearch, chatText, MAX_READ_CHARS, MAX_SEARCH_RESULTS } from "../_lib/chats/views.js";
 import { loadChat, loadChats, pushChat, Refused } from "../_lib/tinyaxe.js";
