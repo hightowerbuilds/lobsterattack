@@ -75,7 +75,7 @@ function TinyAxePage() {
                 Talk to your tiny-axe, wherever it's running. It answers in a 🌐 chat on that machine; anything that needs
                 a yes shows up here as a card, to approve with your PIN (set it with /remote pin in tiny-axe).
               </p>
-              <RemoteChat />
+              <RemoteChat agent="tiny-axe" />
             </div>
           </Match>
         </Switch>
@@ -85,8 +85,7 @@ function TinyAxePage() {
 }
 
 /** BusterClaw's page: its hook fills the window, behind a see-through Chat.
- * The Chat waits for BusterClaw to be connected to this site, which isn't
- * built yet. */
+ * Messages are delivered only to the BusterClaw computer. */
 function BusterClawPage() {
   document.title = "BusterClaw · lobster attack";
   return (
@@ -98,15 +97,7 @@ function BusterClawPage() {
       <div class="home-pane">
         <div class="chat-tab">
           <p class="lede">Talk to BusterClaw, wherever it's running.</p>
-          <div class="chat-box" aria-label="Chat with BusterClaw">
-            <div class="chat-status">
-              <span class="online-dot" aria-hidden="true" />
-              <span>BusterClaw isn't connected to this site yet</span>
-            </div>
-            <div class="chat-log">
-              <p class="empty">Once BusterClaw is connected, you can talk to it here.</p>
-            </div>
-          </div>
+          <RemoteChat agent="busterclaw" />
         </div>
       </div>
     </div>

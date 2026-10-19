@@ -435,3 +435,6 @@ verify_jwt = false
 
 [functions.ta-remote-approve]
 verify_jwt = false
+
+[functions.ta-remote-heartbeat]
+verify_jwt = false

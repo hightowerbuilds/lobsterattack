@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { Hono } from "hono";
-import { memoryStore } from "../_lib/store.js";
-import { sha256 } from "../_lib/tinyaxe.js";
-import { tinyAxeApi } from "../_routes/tinyaxe.js";
+import { memoryStore } from "../api/_lib/store.js";
+import { sha256 } from "../api/_lib/tinyaxe.js";
+import { tinyAxeApi } from "../api/_routes/tinyaxe.js";
 
 const KEY = "k".repeat(20) + "0123456789abcdefghijkl"; // 42 characters
 const OTHER_KEY = "o".repeat(40);

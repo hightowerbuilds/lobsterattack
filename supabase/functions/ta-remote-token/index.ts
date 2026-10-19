@@ -1,3 +1,4 @@
+import { remoteAgent, remoteTopic } from "../_shared/agents.ts";
 // tiny-axe's agent key → a Supabase session of its owner, for joining the
 // owner's private Realtime channel (`remote:<owner_id>`).
 //
@@ -11,6 +12,9 @@
 import { admin, authClient, bearer, body, json, ownerForKey, serve } from "../_shared/remote.ts";
 
 serve(async (req) => {
+  const input = await body(req);
+  const agent = remoteAgent(input.agent);
+  if (!agent) return json(req, 400, { error: "Unknown agent." });
   const owner = await ownerForKey(bearer(req));
   if (!owner) return json(req, 401, { error: "A valid tiny-axe key is needed: Authorization: Bearer <key>" });
 
@@ -29,7 +33,7 @@ serve(async (req) => {
   });
   if (verifyError || !verified.session) throw new Error(`verifyOtp: ${verifyError?.message ?? "no session"}`);
 
-  const { previous } = await body(req);
+  const { previous } = input;
   if (typeof previous === "string" && previous) {
     // Best effort: an old session that's already gone is fine.
     await admin.auth.admin.signOut(previous, "local").catch(() => {});
@@ -39,7 +43,9 @@ serve(async (req) => {
     access_token: verified.session.access_token,
     expires_at: verified.session.expires_at,
     owner_id: owner,
-    topic: `remote:${owner}`,
+    topic: remoteTopic(owner, agent),
+    agent,
+    protocol: 2,
     // Realtime wants the project's public key in the websocket URL; it's the
     // same one the site's bundle carries.
     apikey: Deno.env.get("SUPABASE_ANON_KEY"),

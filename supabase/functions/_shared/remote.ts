@@ -112,7 +112,7 @@ export async function ownerForSession(token: string): Promise<string | null> {
   return account ? data.user.id : null;
 }
 
-export const COLUMNS = "id, role, body, status, reply_to, conversation, created_at, updated_at";
+export const COLUMNS = "id, agent, role, body, status, reply_to, conversation, created_at, updated_at";
 /** A conversation's id, as the page sends it. */
 export const CONVERSATION = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const MAX_BODY = 20000;

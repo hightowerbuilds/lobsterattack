@@ -5,3 +5,5 @@ dist
 .env.bak*
 .tanstack
 .buster-credentials
+.vercel
+.env*

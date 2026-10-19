@@ -1,4 +1,8 @@
-# Lobster Attack: tiny-axe's home
+# Lobster Attack: Tiny Axe and BusterClaw
+
+One account reaches the agents on your two computers: Tiny Axe at `/tiny-axe`
+and BusterClaw at `/busterclaw`. Each has its own remote conversations and
+online status. See [pairing and deployment](docs/busterclaw.md).
 
 The hosted home of [tiny-axe](https://github.com/hightowerbuilds/tiny-axe):
 every chat with it, searchable, and a line to it wherever it's running, for the

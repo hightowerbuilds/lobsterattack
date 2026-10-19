@@ -1,3 +1,4 @@
+import { remoteAgent } from "../_shared/agents.ts";
 // The site → a message for tiny-axe. Kept in buster_ta_remote, so it waits if
 // tiny-axe is off; the table's trigger puts it on the owner's channel.
 //
@@ -10,6 +11,8 @@ serve(async (req) => {
   if (!owner) return json(req, 401, { error: "Sign in first." });
 
   const input = await body(req);
+  const agent = remoteAgent(input.agent);
+  if (!agent) return json(req, 400, { error: "Unknown agent." });
   const text = String(input.body ?? "").trim();
   if (!text) return json(req, 400, { error: "The message is empty." });
   if (text.length > MAX_BODY) return json(req, 400, { error: `Messages are at most ${MAX_BODY} characters.` });
@@ -21,7 +24,7 @@ serve(async (req) => {
 
   const { data, error } = await admin
     .from("buster_ta_remote")
-    .insert({ owner_id: owner, role: "user", body: text, conversation })
+    .insert({ owner_id: owner, agent, role: "user", body: text, conversation })
     .select(COLUMNS)
     .single();
   if (error) throw new Error(error.message);

@@ -33,9 +33,12 @@ import { createEffect, createSignal, For, on, onCleanup, Show } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { renderChat } from "../api/_lib/chats/render.ts";
 import { session, supabase } from "./auth.ts";
+import { agent as selectedAgent, type Agent } from "./store.ts";
+import { remoteTopic } from "../supabase/functions/_shared/agents.ts";
 
 type Message = {
   id: string;
+  agent?: Agent;
   role: "user" | "assistant";
   body: string;
   status: "pending" | "working" | "answered" | "failed";
@@ -43,6 +46,7 @@ type Message = {
   /** Null for messages from before conversations. */
   conversation: string | null;
   created_at: string;
+  updated_at: string;
 };
 
 type Live = { text?: string; status?: string };
@@ -104,33 +108,32 @@ async function call(fn: string, body: Record<string, unknown>): Promise<any> {
   throw new Error(reason?.error ?? error.message);
 }
 
-// The conversation the Chat tab is on; null for a new, empty one.
-const KEPT = "remote-conversation";
-const [conversation, setConversationTo] = createSignal<string | null>(
-  (() => {
-    try {
-      return sessionStorage.getItem(KEPT);
-    } catch {
-      return null;
-    }
-  })(),
-);
-function setConversation(id: string | null) {
-  setConversationTo(id);
-  try {
-    if (id) sessionStorage.setItem(KEPT, id);
-    else sessionStorage.removeItem(KEPT);
-  } catch {
-    // Kept only as a convenience.
-  }
+// Scope remembered conversations to both account and computer.
+const [conversations, setConversations] = createSignal<Record<string, string | null>>({});
+const scope = (target: Agent) => `remote-conversation:${session()?.user.id ?? "signed-out"}:${target}`;
+function conversation(target: Agent): string | null {
+  const key = scope(target);
+  if (key in conversations()) return conversations()[key];
+  try { return sessionStorage.getItem(key); } catch { return null; }
 }
-
-/** Starts a new, empty chat. */
-export const newChat = () => setConversation(null);
+function setConversation(id: string | null, target: Agent) {
+  const key = scope(target);
+  setConversations(was => ({ ...was, [key]: id }));
+  try {
+    if (id) sessionStorage.setItem(key, id);
+    else sessionStorage.removeItem(key);
+  } catch { /* Storage is a convenience. */ }
+}
+export const newChat = () => setConversation(null, selectedAgent());
 
 const byTime = (a: Message, b: Message) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0);
 
-export function RemoteChat() {
+export function RemoteChat(props: { agent: Agent }) {
+  const target = () => props.agent;
+  const name = () => target() === "busterclaw" ? "BusterClaw" : "Tiny Axe";
+  const currentConversation = () => conversation(target());
+  const currentScope = () => scope(target());
+
   const [messages, setMessages] = createStore<Message[]>([]);
   // What tiny-axe is doing about each message it's on, and its reply so far.
   const [live, setLive] = createStore<Record<string, Live>>({});
@@ -146,14 +149,20 @@ export function RemoteChat() {
   // Messages from the channel for a conversation the page doesn't know yet:
   // the one a send is starting, until its answer says which it is.
   let held: Message[] = [];
+  let disposed = false;
+  let loadSequence = 0;
+  onCleanup(() => { disposed = true; });
 
   const upsert = (m: Message) => {
-    if (m.conversation !== conversation()) {
+    if ((m.agent ?? "tiny-axe") !== target()) return;
+    if (m.conversation !== currentConversation()) {
       if (sending()) held = [...held.filter((h) => h.id !== m.id), m].slice(-20);
       return;
     }
     const at = messages.findIndex((x) => x.id === m.id);
-    if (at >= 0) setMessages(at, reconcile(m));
+    if (at >= 0) {
+      if (m.updated_at >= messages[at].updated_at) setMessages(at, reconcile(m));
+    }
     else setMessages([...messages, m].sort(byTime));
     // A reply ends the live one.
     if (m.role === "assistant" && m.reply_to) setLive(m.reply_to, undefined!);
@@ -166,25 +175,40 @@ export function RemoteChat() {
   };
 
   const load = async () => {
-    const showing = conversation();
+    const sequence = ++loadSequence;
+    const showing = currentConversation();
+    const loadingScope = currentScope();
+    const current = () => !disposed && sequence === loadSequence && showing === currentConversation() && loadingScope === currentScope();
     try {
       // Without a conversation there's nothing to show yet but the approvals.
-      const { messages: kept, approvals: asked } = await call("ta-remote-history", showing ? { conversation: showing } : {});
-      if (showing !== conversation()) return;
-      setMessages(reconcile(showing ? (kept as Message[]).filter((m) => m.conversation === showing).sort(byTime) : [], { key: "id" }));
+      const { messages: kept, approvals: asked, online: connected } = await call("ta-remote-history", { agent: target(), ...(showing ? { conversation: showing } : {}) });
+      if (!current()) return;
+      if (target() === "busterclaw") setOnline(connected === true);
+      // Keep broadcasts received while this history snapshot was in flight.
+      for (const message of (kept ?? []) as Message[]) upsert(message);
       setApprovals(reconcile((asked ?? []) as Approval[], { key: "id" }));
       setProblem(null);
     } catch (e) {
-      setProblem((e as Error).message);
+      if (current()) setProblem((e as Error).message);
     } finally {
-      setLoaded(true);
+      if (current()) setLoaded(true);
     }
   };
 
   createEffect(
     on(
-      () => session()?.user.id,
-      (owner) => {
+      () => [session()?.user.id, target()] as const,
+      ([owner, chosen]) => {
+        setMessages([]);
+        setLive(reconcile({}));
+        setApprovals([]);
+        setOnline(false);
+        setLoaded(false);
+        setText("");
+        setSending(false);
+        setProblem(null);
+        setChannelState("joining");
+        held = [];
         if (!owner || !supabase) return;
         const client = supabase;
         let channel: RealtimeChannel | undefined;
@@ -193,14 +217,16 @@ export function RemoteChat() {
         load();
         client.realtime.setAuth().then(() => {
           if (gone) return;
-          channel = client.channel(`remote:${owner}`, { config: { private: true } });
+          channel = client.channel(remoteTopic(owner, chosen), { config: { private: true } });
           channel
-            .on("broadcast", { event: "message" }, ({ payload }) => upsert(payload as Message))
-            .on("broadcast", { event: "approval" }, ({ payload }) => upsertApproval(payload as Approval))
-            .on("broadcast", { event: "draft" }, ({ payload }) => setLive(payload.reply_to, (was) => ({ ...was, text: payload.text })))
-            .on("broadcast", { event: "status" }, ({ payload }) => setLive(payload.reply_to, (was) => ({ ...was, status: payload.text })))
-            .on("presence", { event: "sync" }, () => setOnline("tiny-axe" in channel!.presenceState()))
+            .on("broadcast", { event: "message" }, ({ payload }) => { if (!gone) upsert(payload as Message); })
+            .on("broadcast", { event: "approval" }, ({ payload }) => { if (!gone && chosen === "tiny-axe") upsertApproval(payload as Approval); })
+            .on("broadcast", { event: "draft" }, ({ payload }) => { if (!gone) setLive(payload.reply_to, (was) => ({ ...was, text: payload.text })); })
+            .on("broadcast", { event: "status" }, ({ payload }) => { if (!gone) setLive(payload.reply_to, (was) => ({ ...was, status: payload.text })); })
+            .on("broadcast", { event: "device" }, ({ payload }) => { if (!gone && chosen === "busterclaw") setOnline(payload.online === true); })
+            .on("presence", { event: "sync" }, () => { if (!gone && chosen === "tiny-axe") setOnline("tiny-axe" in channel!.presenceState()); })
             .subscribe((status) => {
+              if (gone) return;
               if (status === "SUBSCRIBED") {
                 setChannelState("joined");
                 // Whatever changed while the channel was down.
@@ -210,9 +236,11 @@ export function RemoteChat() {
                 setOnline(false);
               }
             });
-        });
+        }).catch(() => { if (!gone) setChannelState("down"); });
 
+        const poll = setInterval(() => { if (!gone) void load(); }, 5000);
         onCleanup(() => {
+          clearInterval(poll);
           gone = true;
           if (channel) client.removeChannel(channel);
         });
@@ -223,7 +251,7 @@ export function RemoteChat() {
   // New chat: an empty log, and the box ready to type in.
   createEffect(
     on(
-      conversation,
+      currentConversation,
       (now) => {
         if (now !== null) return;
         setMessages([]);
@@ -251,11 +279,15 @@ export function RemoteChat() {
     const body = text().trim();
     if (!body || sending()) return;
     setSending(true);
+    const sendingScope = currentScope();
+    const sendingConversation = currentConversation();
+    const current = () => !disposed && sendingScope === currentScope();
     try {
-      const { message } = (await call("ta-remote-send", { body, conversation: conversation() ?? undefined })) as {
+      const { message } = (await call("ta-remote-send", { body, agent: target(), conversation: sendingConversation ?? undefined })) as {
         message: Message;
       };
-      if (conversation() === null) setConversation(message.conversation);
+      if (!current() || sendingConversation !== currentConversation()) return;
+      if (currentConversation() === null) setConversation(message.conversation, target());
       upsert(message);
       for (const m of held) upsert(m);
       held = [];
@@ -263,10 +295,12 @@ export function RemoteChat() {
       setProblem(null);
       pinned = true;
     } catch (e) {
-      setProblem((e as Error).message);
+      if (current()) setProblem((e as Error).message);
     } finally {
-      setSending(false);
-      input?.focus();
+      if (current()) {
+        setSending(false);
+        input?.focus();
+      }
     }
   };
 
@@ -277,27 +311,27 @@ export function RemoteChat() {
   const replyTo = (id: string) => messages.find((m) => m.role === "assistant" && m.reply_to === id);
 
   const waiting = (m: Message) => {
-    if (m.status === "pending") return online() ? "sent; tiny-axe will pick it up in a moment" : "waiting for tiny-axe to be back";
-    if (m.status === "failed" && !replyTo(m.id)) return "tiny-axe couldn't answer this";
+    if (m.status === "pending") return online() ? `sent; ${name()} will pick it up in a moment` : `waiting for ${name()} to be back`;
+    if (m.status === "failed" && !replyTo(m.id)) return `${name()} couldn't answer this`;
     // Taken up, then tiny-axe went away: it won't run it again on its own.
-    if (m.status === "working" && !online()) return "tiny-axe went offline while working on this; send it again once it's back";
+    if (m.status === "working" && !online()) return `${name()} is offline; its answer will appear when it reconnects`;
     return null;
   };
 
   return (
-    <div class="chat-box" aria-label="Chat with tiny-axe">
+    <div class="chat-box" aria-label={`Chat with ${name()}`}>
       <div class="chat-status">
         <span classList={{ "online-dot": true, on: online() }} aria-hidden="true" />
         <span class="chat-state">
           {online()
-            ? "tiny-axe is online"
+            ? `${name()} is online`
             : channelState() === "joining"
               ? "connecting…"
               : channelState() === "down"
                 ? "not connected; trying again"
-                : "tiny-axe is offline: messages wait until it's back (/remote on in tiny-axe)"}
+                : `${name()} is offline; messages wait until its computer reconnects`}
         </span>
-        <button type="button" class="new-chat" disabled={messages.length === 0} onClick={newChat}>
+        <button type="button" class="new-chat" disabled={sending() || messages.length === 0} onClick={() => setConversation(null, target())}>
           New chat
         </button>
       </div>
@@ -312,14 +346,14 @@ export function RemoteChat() {
           <p class="empty">Loading…</p>
         </Show>
         <Show when={loaded() && messages.length === 0}>
-          <p class="empty">A new chat. Ask tiny-axe something; it answers from your machine.</p>
+          <p class="empty">A new chat with {name()}. It answers from your {target() === "busterclaw" ? "BusterClaw" : "Tiny Axe"} computer.</p>
         </Show>
         <ol class="transcript">
           <For each={messages}>
             {(m) => (
               <>
                 <li class={`message ${m.role}`} classList={{ failed: m.status === "failed" }}>
-                  <div class="who">{m.role === "user" ? "You" : "tiny-axe"}</div>
+                  <div class="who">{m.role === "user" ? "You" : name()}</div>
                   <Show when={m.role === "assistant"} fallback={<div class="body plain">{m.body}</div>}>
                     <div class="body" innerHTML={renderChat(m.body)} />
                   </Show>
@@ -328,7 +362,7 @@ export function RemoteChat() {
                 <For each={m.role === "user" ? cardsFor(m.id) : []}>{(a) => <ApprovalCard approval={a} onUpdate={upsertApproval} />}</For>
                 <Show when={m.role === "user" && m.status === "working" && online() && !replyTo(m.id)}>
                   <li class="message assistant live" aria-live="polite">
-                    <div class="who">tiny-axe</div>
+                    <div class="who">{name()}</div>
                     <Show when={live[m.id]?.status}>{(s) => <div class="activity">{s()}</div>}</Show>
                     <Show when={live[m.id]?.text} fallback={<div class="body thinking">…</div>}>
                       {(t) => <div class="body" innerHTML={renderChat(t())} />}
@@ -346,7 +380,8 @@ export function RemoteChat() {
         <textarea
           ref={input}
           rows={1}
-          placeholder="Ask tiny-axe…"
+          placeholder={`Ask ${name()}…`}
+          maxlength={20000}
           aria-label="Message"
           value={text()}
           onInput={(e) => setText(e.currentTarget.value)}

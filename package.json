@@ -9,7 +9,7 @@
     "check": "vp check",
     "api:dev": "bun run --hot api/_server.ts",
     "api:start": "bun run api/_server.ts",
-    "test": "bun test api/test",
+    "test": "bun test test",
     "tinyaxe-key": "bun scripts/tinyaxe-key.ts"
   },
   "dependencies": {

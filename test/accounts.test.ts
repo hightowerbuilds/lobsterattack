@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { Hono } from "hono";
-import type { Accounts } from "../_lib/accounts.js";
-import { memoryStore } from "../_lib/store.js";
-import { accountsApi } from "../_routes/accounts.js";
-import { tinyAxeApi } from "../_routes/tinyaxe.js";
+import type { Accounts } from "../api/_lib/accounts.js";
+import { memoryStore } from "../api/_lib/store.js";
+import { accountsApi } from "../api/_routes/accounts.js";
+import { tinyAxeApi } from "../api/_routes/tinyaxe.js";
 
 // A fake Supabase Auth: users by email, with their passwords.
 function fakeAccounts() {

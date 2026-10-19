@@ -161,12 +161,12 @@ function Menu() {
             </a>
           )}
         </For>
-        <Show when={agent() === "tiny-axe"}>
+        <Show when={route().kind === "home"}>
           <button
             type="button"
             onClick={() => {
               newChat();
-              go("/tiny-axe");
+              go(`/${agent()}`);
             }}
           >
             New chat
