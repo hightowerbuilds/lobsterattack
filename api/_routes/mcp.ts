@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { discussionCard, drawing, VISUAL_GUIDE } from "../_lib/chats/visuals.ts";
 import { CHAT_ID } from "../_lib/chats/history.js";
 import { chatSearch, chatText, MAX_READ_CHARS, MAX_SEARCH_RESULTS } from "../_lib/chats/views.js";
 import { loadChat, loadChats, pushChat, Refused } from "../_lib/tinyaxe.js";
@@ -43,6 +44,32 @@ function sitePath(chat: unknown): string {
 const CHAT_ARG = { chat: { type: "string", description: "A chat's id (from chat_search), to link to that chat." } };
 
 const TOOLS: Record<string, Tool> = {
+  visual_guide: {
+    description: "Learn how to create tappable images, diagrams and discussion cards in LobsterAttack replies. Both BusterClaw and Tiny Axe can use these formats directly.",
+    inputSchema: { type: "object", properties: {}, required: [] },
+    annotations: READ,
+    async run() { return text(VISUAL_GUIDE); },
+  },
+  visual_create: {
+    description: "Create a diagram or discussion card for a LobsterAttack reply. Validates a self-contained SVG drawing or a card, then returns a fenced block to include in your answer. Does not publish or send a message. Read visual_guide for examples.",
+    inputSchema: { type: "object", properties: {
+      svg: { type: "string", description: "One complete SVG with viewBox and title; at most 16,000 characters. Supply either svg or card." },
+      card: { type: "object", properties: {
+        title: { type: "string" }, body: { type: "string" }, bullets: { type: "array", items: { type: "string" } },
+        kind: { type: "string", enum: ["idea", "comparison", "plan", "decision", "question"] },
+      }, required: ["title"] },
+    }, required: [] },
+    annotations: READ,
+    async run({ svg, card }) {
+      if (typeof svg === "string" && card === undefined) {
+        if (!drawing(svg)) throw new Refused("Invalid SVG. Use a complete self-contained drawing with a viewBox or numeric width/height, no active/external content, and fewer than 16,000 characters.");
+        return text("Include this image block in your reply:\n\n```svg\n" + svg.trim() + "\n```");
+      }
+      const value = svg === undefined ? discussionCard(card) : null;
+      if (!value) throw new Refused("Supply either svg or a card with a title and body/bullets. Read visual_guide for limits and examples.");
+      return text("Include this discussion card in your reply:\n\n```card\n" + JSON.stringify(value) + "\n```");
+    },
+  },
   chat_search: {
     description:
       "Search the user's past chats with tiny-axe, for questions like \"what did we decide (or do) about X?\". " +
@@ -152,7 +179,7 @@ async function handle(message: any, ctx: Ctx): Promise<object | null> {
         instructions:
           "tiny-axe's website: the user's chat history with tiny-axe, searchable, shown to the people its owner " +
           "lets in. Search past chats with chat_search and read one with chat_read; give the user a link to them " +
-          "with site_link.",
+          "with site_link. For tappable diagrams and discussion cards, read visual_guide and use visual_create to validate the block for your reply.",
       });
     }
 

@@ -87,9 +87,24 @@ describe("/api/mcp", () => {
     expect(note.status).toBe(202);
 
     const names = (await rpc("tools/list")).body.result.tools.map((t: any) => t.name);
-    expect(names).toEqual(["chat_search", "chat_read", "site_link", "signin_link", "chat_push"]);
+    expect(names).toEqual(["visual_guide", "visual_create", "chat_search", "chat_read", "site_link", "signin_link", "chat_push"]);
     expect((await rpc("tools/call", { name: "nope" })).body.error.code).toBe(-32602);
     expect((await rpc("resources/list")).body.error.code).toBe(-32601);
+  });
+
+  test("visual tools return usable image/card blocks without storing or publishing a chat", async () => {
+    const { call, view } = await setup();
+    expect((await call("visual_guide")).text).toContain("full-size viewer");
+    const image = await call("visual_create", { svg: '<svg viewBox="0 0 600 300"><title>Test</title><rect width="600" height="300" fill="white"/></svg>' });
+    expect(image.error).toBe(false);
+    expect(image.text).toContain("```svg");
+    const card = await call("visual_create", { card: { title: "Next step", bullets: ["Try it"] } });
+    expect(card.error).toBe(false);
+    expect(card.text).toContain("```card");
+    expect((await call("visual_create", { svg: '<svg><script>bad()</script></svg>' })).error).toBe(true);
+    expect((await call("visual_create", { card: { title: "Empty" } })).error).toBe(true);
+    expect((await call("visual_create", { svg: "x", card: {} })).error).toBe(true);
+    expect((await view("/chats")).body.total).toBe(0);
   });
 
   test("chat_push keeps what the page shows, redacted, never the context", async () => {

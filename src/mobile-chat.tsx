@@ -172,6 +172,9 @@ export function createMobileChat(props: {
     // sound like prose. Short chunks avoid truncating long replies.
     const template = document.createElement("template");
     template.innerHTML = renderChat(props.reply());
+    template.content.querySelectorAll(".visual-card").forEach(el => {
+      el.replaceWith(document.createTextNode(`Drawing: ${el.getAttribute("aria-label") ?? "Agent drawing"}. `));
+    });
     template.content.querySelectorAll("p, li, h1, h2, h3, pre, tr, br").forEach(el => el.append("\n"));
     const prose = (template.content.textContent ?? "").replace(/\s+/g, " ").trim();
     const chunks = prose.match(/.{1,220}(?:\s|$)|\S{1,220}/gu) ?? [];
@@ -223,7 +226,7 @@ export function createMobileChat(props: {
     const fullscreen = () => {
       if (nativeFullscreen && document.fullscreenElement !== props.box()) close();
     };
-    const keydown = (event: KeyboardEvent) => { if (event.key === "Escape" && expanded()) close(); };
+    const keydown = (event: KeyboardEvent) => { if (event.key === "Escape" && expanded() && !document.querySelector("dialog[open]")) close(); };
     const pagehide = () => { stopAudio(); wake.visibility(false); };
     deviceChanged();
     resize();

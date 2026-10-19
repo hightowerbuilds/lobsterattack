@@ -7,6 +7,7 @@
 
 import { createEffect, createSignal, For, Match, Show, Switch } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
+import { createVisualViewer } from "./visual-viewer.tsx";
 import { chatHref, chatQuery, chatsQuery, type ChatDetail, type ChatList } from "./store.ts";
 
 // Kept while the page is open, so coming back from a chat finds the same search.
@@ -88,6 +89,7 @@ export function ChatsPage() {
 /** One chat: the user's messages and tiny-axe's replies, with the activity
  * between them, fetched again whenever tiny-axe writes it. */
 export function ChatPage(props: { id: string }) {
+  const visuals = createVisualViewer();
   const chat = chatQuery(() => props.id);
   // Messages are matched by place, so a new one is added below the rest.
   const [shown, setShown] = createStore<{ chat: ChatDetail | null }>({ chat: null });
@@ -100,6 +102,7 @@ export function ChatPage(props: { id: string }) {
 
   return (
     <div class="chat-page">
+      <visuals.Viewer />
       <div class="crumbs">
         <a href="/chats">← All chats</a>
       </div>
@@ -113,7 +116,7 @@ export function ChatPage(props: { id: string }) {
                 {c().folder} · <time datetime={c().started}>{when(c().started)}</time>
                 {sameDay(c().updated, c().started) ? "" : ` · last on ${day(c().updated)}`}
               </p>
-              <ol class="transcript">
+              <ol class="transcript" onClick={visuals.openFromClick}>
                 <For each={c().entries}>
                   {(e) => (
                     <Show when={e.kind !== "meta"} fallback={<li class="activity">{e.text}</li>}>

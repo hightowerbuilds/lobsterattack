@@ -358,3 +358,28 @@ main.fixed .home { height: 100%; display: flex; flex-direction: column; }
   .chat-status { padding-top: 0; padding-bottom: 0; }
   .mobile-help { padding-top: 0; }
 }
+
+
+/* Visual replies share the site's square corners and each agent's palette. */
+.visual-card { margin: 12px 0; }
+.visual-preview { display: block; width: 100%; padding: 0; overflow: hidden; text-align: left; }
+.visual-preview img { display: block; width: 100%; max-height: 320px; object-fit: contain; background: #fff; }
+.visual-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; padding: 10px 12px; }
+.visual-caption strong { font-size: 13px; overflow-wrap: anywhere; }
+.visual-action { color: var(--accent); font-size: 12px; }
+.visual-pending, .visual-unavailable { color: var(--muted); font-size: 13px; }
+.discussion-card { margin: 12px 0; padding: 16px; border: 1px solid var(--line); border-left: 3px solid var(--accent); background: var(--raised); }
+.discussion-kind { color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.message .body .discussion-card h3 { margin: 6px 0 8px; font-size: 18px; }
+.discussion-copy { white-space: pre-wrap; }
+.body .discussion-card ul { list-style: disc; padding-left: 20px; margin-bottom: 0; }
+.visual-viewer { width: 100%; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); border: 0; color: var(--text); background: var(--bg); }
+.visual-viewer[open] { display: flex; flex-direction: column; }
+.visual-viewer::backdrop { background: #000c; }
+.visual-viewer-head { display: flex; flex: none; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.visual-viewer-head strong { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.visual-viewer-head button { flex: none; min-height: 44px; }
+.visual-viewer-close { min-width: 44px; font-size: 18px; }
+.visual-stage { display: flex; flex: 1; min-height: 0; min-width: 0; overflow: auto; padding: 16px; overscroll-behavior: contain; }
+.visual-stage img { display: block; flex: none; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; margin: auto; background: #fff; }
+.visual-stage.visual-zoomed img { max-width: none; max-height: none; margin: auto; }

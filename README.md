@@ -63,6 +63,28 @@ completed assistant reply; tap again to stop. Audio stops when leaving the page,
 switching conversations or agents, editing/sending a message, or closing the
 expanded view. These controls are absent on desktop.
 
+## Visual replies
+
+Both agents can draw inline images with a fenced `svg` block and explain ideas
+with a fenced `card` JSON block. Tap a drawing for the full image, then choose
+**Actual size** to inspect it or **Fit image** to see the whole drawing. Close
+with **×** or Escape. Visuals survive history reloads and use the same viewer
+in saved Tiny Axe chats. Discussion cards keep the site's square corners.
+
+The website's MCP connection exposes `visual_guide` and `visual_create` to teach
+and validate these formats. Reconnect Tiny Axe's site MCP connection (or restart
+Tiny Axe) to discover newly added tools. Its existing tool approval policy still
+applies; the visual tools only validate/format text and never publish a message.
+BusterClaw's companion relay and introduction teach the formats directly.
+
+SVGs are self-contained vector drawings, not generated photos. They are shown
+only through image elements, never injected into the page as live SVG. Scripts,
+external resources and oversized drawings are refused. Ordinary external
+Markdown images remain disabled. Keep drawings under 16,000 characters and
+complete replies below 20,000 characters (19,000 for BusterClaw's relay).
+Cards accept plain-text `title`, `body`, `bullets`, and optional `kind`:
+`idea`, `comparison`, `plan`, `decision`, or `question`.
+
 ## Keys and viewers
 
 ```

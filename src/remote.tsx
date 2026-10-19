@@ -36,6 +36,7 @@ import { session, supabase } from "./auth.ts";
 import { Axe } from "./axe.tsx";
 import { Hook } from "./hook.tsx";
 import { createMobileChat, MobileChatTools } from "./mobile-chat.tsx";
+import { createVisualViewer } from "./visual-viewer.tsx";
 import { agent as selectedAgent, type Agent } from "./store.ts";
 import { remoteTopic } from "../supabase/functions/_shared/agents.ts";
 
@@ -132,6 +133,7 @@ export const newChat = () => setConversation(null, selectedAgent());
 const byTime = (a: Message, b: Message) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0);
 
 export function RemoteChat(props: { agent: Agent }) {
+  const visuals = createVisualViewer();
   const target = () => props.agent;
   const name = () => target() === "busterclaw" ? "BusterClaw" : "Tiny Axe";
   const currentConversation = () => conversation(target());
@@ -267,6 +269,7 @@ export function RemoteChat(props: { agent: Agent }) {
     on(
       currentConversation,
       (now) => {
+        visuals.close();
         if (now !== null) return;
         setMessages([]);
         setLive(reconcile({}));
@@ -355,6 +358,7 @@ export function RemoteChat(props: { agent: Agent }) {
       <div
         class="chat-log"
         ref={log}
+        onClick={visuals.openFromClick}
         onScroll={() => {
           if (log) pinned = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
         }}
@@ -423,6 +427,7 @@ export function RemoteChat(props: { agent: Agent }) {
           </span>
         </button>
       </form>
+      <visuals.Viewer />
     </div>
   );
 }
