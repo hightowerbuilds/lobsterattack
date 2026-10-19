@@ -6,7 +6,7 @@
 // its own, and whatever you're reading, typing or searching stays as it is.
 
 import { QueryClientProvider } from "@tanstack/solid-query";
-import { createEffect, createSignal, For, Match, on, Show, Switch } from "solid-js";
+import { createEffect, For, Match, on, Show, Switch } from "solid-js";
 import { render } from "solid-js/web";
 import { session, signOut } from "./auth.ts";
 import { ChatPage } from "./chats.tsx";
@@ -21,7 +21,6 @@ import {
   go,
   menuOpen,
   queryClient,
-  recall,
   remember,
   route,
   ROUTES,
@@ -29,22 +28,18 @@ import {
 } from "./store.ts";
 import { AGENT_NAMES, HomePage, VIEWS } from "./views.tsx";
 
-// Dark by default; the switch's choice is remembered in this browser. Set
-// before anything draws, so a light page never starts dark.
-const [theme, setTheme] = createSignal<"dark" | "light">(recall<string>("theme", "dark") === "light" ? "light" : "dark");
-const applyTheme = (t: "dark" | "light") => {
-  if (t === "light") document.documentElement.dataset.theme = "light";
-  else delete document.documentElement.dataset.theme;
+// The selected agent owns the palette, including on a direct page load.
+const applyAgentTheme = () => {
+  document.documentElement.dataset.agent = agent();
 };
-applyTheme(theme());
+applyAgentTheme();
 
 function App() {
   createEffect(() => {
-    applyTheme(theme());
-    remember("theme", theme());
+    applyAgentTheme();
+    // / opens the agent you were on last.
+    remember("agent", agent());
   });
-  // / opens the agent you were on last.
-  createEffect(() => remember("agent", agent()));
 
   return (
     <>
@@ -86,15 +81,6 @@ function TopBar() {
           </For>
         </nav>
         <span class="brand-tools">
-          <button
-            id="theme"
-            type="button"
-            aria-pressed={theme() === "dark"}
-            title="Switch between dark and light"
-            onClick={() => setTheme(theme() === "dark" ? "light" : "dark")}
-          >
-            Dark
-          </button>
           <button id="signout" type="button" title="Sign out of this browser" onClick={() => signOut()}>
             Sign out
           </button>
@@ -174,9 +160,6 @@ function Menu() {
         </Show>
       </nav>
       <div class="menu-tools">
-        <button type="button" aria-pressed={theme() === "dark"} onClick={() => setTheme(theme() === "dark" ? "light" : "dark")}>
-          Dark
-        </button>
         <button
           type="button"
           onClick={() => {
