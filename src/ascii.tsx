@@ -53,6 +53,7 @@ export function AsciiArt(props: {
   make: (i: number) => Frame;
   count: number;
   frameMs: number;
+  still?: boolean;
   label: string;
   class: string;
   children?: JSX.Element;
@@ -60,6 +61,11 @@ export function AsciiArt(props: {
   const [shown, setShown] = createSignal<Frame | null>(null);
   let timer: number | undefined;
   onMount(() => {
+    // Button marks render just one frame, without generating or cycling the rest.
+    if (props.still) {
+      setShown(props.make(0));
+      return;
+    }
     const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const making = frames(props.make, props.count);
     void making.first.then((f) => setShown((now) => now ?? f));

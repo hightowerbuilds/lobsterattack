@@ -33,6 +33,8 @@ import { createEffect, createSignal, For, on, onCleanup, Show } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
 import { renderChat } from "../api/_lib/chats/render.ts";
 import { session, supabase } from "./auth.ts";
+import { Axe } from "./axe.tsx";
+import { Hook } from "./hook.tsx";
 import { agent as selectedAgent, type Agent } from "./store.ts";
 import { remoteTopic } from "../supabase/functions/_shared/agents.ts";
 
@@ -390,8 +392,19 @@ export function RemoteChat(props: { agent: Agent }) {
             if (e.key === "Enter" && !e.shiftKey && !e.isComposing) send(e);
           }}
         />
-        <button type="submit" class="button" disabled={sending() || !text().trim()}>
-          {sending() ? "Sending…" : "Send"}
+        <button
+          type="submit"
+          class="button send-button"
+          disabled={sending() || !text().trim()}
+          aria-label={sending() ? `Sending to ${name()}…` : `Send to ${name()}`}
+          aria-busy={sending()}
+          title={sending() ? "Sending…" : `Send to ${name()}`}
+        >
+          <span class="send-mark" aria-hidden="true">
+            <Show when={target() === "busterclaw"} fallback={<Axe still />}>
+              <Hook still />
+            </Show>
+          </span>
         </button>
       </form>
     </div>

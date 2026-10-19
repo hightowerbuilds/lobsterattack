@@ -209,7 +209,7 @@ export function frame(index: number): Frame {
   return rows;
 }
 
-/** tiny-axe's double-bit axe, spinning. */
-export function Axe() {
-  return <AsciiArt make={frame} count={FRAMES} frameMs={FRAME_MS} label="tiny-axe: a double-bit axe, spinning" class="axe" />;
+/** tiny-axe's double-bit axe; stationary when used as a button mark. */
+export function Axe(props: { still?: boolean }) {
+  return <AsciiArt make={frame} count={FRAMES} frameMs={FRAME_MS} still={props.still} label="tiny-axe: a double-bit axe" class="axe" />;
 }

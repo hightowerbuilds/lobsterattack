@@ -1,11 +1,8 @@
-// An agent's page: its mark, then what there is of it. tiny-axe's is its
-// Chat (first) and its chat history (searchable), one at a time; BusterClaw's
-// is its Chat, once it's connected. On phones the tabs are in the menu.
+// An agent's page: tiny-axe has Chat and searchable history, one at a time;
+// BusterClaw has Chat. On phones the tabs are in the menu.
 
 import { For, Match, Switch } from "solid-js";
-import { Axe } from "./axe.tsx";
 import { ChatsPage } from "./chats.tsx";
-import { Hook } from "./hook.tsx";
 import { RemoteChat } from "./remote.tsx";
 import { agent, route } from "./store.ts";
 
@@ -53,16 +50,12 @@ function Tabs() {
   );
 }
 
-/** tiny-axe's page, filling the window without scrolling it (a long view
- * scrolls within itself), its axe filling the window behind it. */
+/** tiny-axe's page fills the window; each view scrolls within itself. */
 function TinyAxePage() {
   document.title = "TinyAxe · lobster attack";
 
   return (
-    <div class="home stage">
-      <div class="backdrop" aria-hidden="true">
-        <Axe />
-      </div>
+    <div class="home">
       <Tabs />
       <div class="home-pane">
         <Switch>
@@ -84,15 +77,11 @@ function TinyAxePage() {
   );
 }
 
-/** BusterClaw's page: its hook fills the window, behind a see-through Chat.
- * Messages are delivered only to the BusterClaw computer. */
+/** Messages on this page are delivered only to the BusterClaw computer. */
 function BusterClawPage() {
   document.title = "BusterClaw · lobster attack";
   return (
-    <div class="home stage">
-      <div class="backdrop" aria-hidden="true">
-        <Hook />
-      </div>
+    <div class="home">
       <Tabs />
       <div class="home-pane">
         <div class="chat-tab">

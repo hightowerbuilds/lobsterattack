@@ -284,7 +284,7 @@ export function frame(index: number): Frame {
   return rows;
 }
 
-/** Captain Hook's hook, spinning. */
-export function Hook() {
-  return <AsciiArt make={frame} count={FRAMES} frameMs={FRAME_MS} label="BusterClaw: Captain Hook's hook, spinning" class="hook" />;
+/** Captain Hook's hook; stationary when used as a button mark. */
+export function Hook(props: { still?: boolean }) {
+  return <AsciiArt make={frame} count={FRAMES} frameMs={FRAME_MS} still={props.still} label="BusterClaw: Captain Hook's hook" class="hook" />;
 }
