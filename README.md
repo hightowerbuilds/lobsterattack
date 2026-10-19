@@ -40,6 +40,29 @@ bun run dev                   # site on :5173 (proxies /api)
 bun run test                  # API tests, in memory
 ```
 
+## iPhone chat controls
+
+On touch devices, both agent chats show **Full screen**, **Microphone**, and
+**Read reply**. Full screen expands the chat until you tap **×** and requests a
+screen wake lock. **Awake** means the browser granted it; a retry notice means
+the phone may still lock. Leaving the page releases the lock; returning requests
+it again while the chat is expanded. Closing the expanded view releases it until
+you expand it again.
+iOS can deny or revoke the lock, including in Low Power Mode.
+
+iPhone Safari does not expose element fullscreen. To hide its browser bars,
+choose **Share → Add to Home Screen**, leave **Open as Web App** enabled when
+shown, and launch that icon. The site includes standalone metadata for older
+iOS versions. Home Screen wake locks require iOS 18.4 or newer.
+
+Microphone uses Safari's speech recognition, with an explicit permission prompt.
+It adds completed dictation to the draft and never sends automatically. If the
+browser cannot dictate, use the microphone on the iPhone keyboard. Recognition
+may use the browser vendor's speech service. Read reply speaks the latest
+completed assistant reply; tap again to stop. Audio stops when leaving the page,
+switching conversations or agents, editing/sending a message, or closing the
+expanded view. These controls are absent on desktop.
+
 ## Keys and viewers
 
 ```

@@ -35,6 +35,7 @@ import { renderChat } from "../api/_lib/chats/render.ts";
 import { session, supabase } from "./auth.ts";
 import { Axe } from "./axe.tsx";
 import { Hook } from "./hook.tsx";
+import { createMobileChat, MobileChatTools } from "./mobile-chat.tsx";
 import { agent as selectedAgent, type Agent } from "./store.ts";
 import { remoteTopic } from "../supabase/functions/_shared/agents.ts";
 
@@ -146,8 +147,19 @@ export function RemoteChat(props: { agent: Agent }) {
   const [loaded, setLoaded] = createSignal(false);
   const [text, setText] = createSignal("");
   const [sending, setSending] = createSignal(false);
+  let box: HTMLDivElement | undefined;
   let log: HTMLDivElement | undefined;
   let input: HTMLTextAreaElement | undefined;
+  const latestReply = () => messages.findLast(m => m.role === "assistant" && m.status === "answered")?.body ?? "";
+  const mobile = createMobileChat({
+    box: () => box,
+    input: () => input,
+    scope: () => `${currentScope()}:${currentConversation() ?? "new"}`,
+    text,
+    setText,
+    reply: latestReply,
+    sending,
+  });
   // Messages from the channel for a conversation the page doesn't know yet:
   // the one a send is starting, until its answer says which it is.
   let held: Message[] = [];
@@ -321,7 +333,7 @@ export function RemoteChat(props: { agent: Agent }) {
   };
 
   return (
-    <div class="chat-box" aria-label={`Chat with ${name()}`}>
+    <div ref={box} class="chat-box" classList={{ "chat-expanded": mobile.expanded() }} aria-label={`Chat with ${name()}`}>
       <div class="chat-status">
         <span classList={{ "online-dot": true, on: online() }} aria-hidden="true" />
         <span class="chat-state">
@@ -336,6 +348,9 @@ export function RemoteChat(props: { agent: Agent }) {
         <button type="button" class="new-chat" disabled={sending() || messages.length === 0} onClick={() => setConversation(null, target())}>
           New chat
         </button>
+        <Show when={mobile.expanded()}>
+          <button type="button" class="close-expanded" aria-label="Close full screen" onClick={() => mobile.close()}>✕</button>
+        </Show>
       </div>
       <div
         class="chat-log"
@@ -378,6 +393,7 @@ export function RemoteChat(props: { agent: Agent }) {
         </ol>
       </div>
       <Show when={problem()}>{(p) => <p class="problem chat-problem">{p()}</p>}</Show>
+      <MobileChatTools controls={mobile} canRead={!!latestReply().trim()} sending={sending()} />
       <form class="chat-send" onSubmit={send}>
         <textarea
           ref={input}
@@ -386,7 +402,7 @@ export function RemoteChat(props: { agent: Agent }) {
           maxlength={20000}
           aria-label="Message"
           value={text()}
-          onInput={(e) => setText(e.currentTarget.value)}
+          onInput={(e) => { mobile.stopAudio(); setText(e.currentTarget.value); }}
           onKeyDown={(e) => {
             // Enter sends; shift+enter is a new line.
             if (e.key === "Enter" && !e.shiftKey && !e.isComposing) send(e);
