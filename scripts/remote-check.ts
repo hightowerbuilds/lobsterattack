@@ -7,7 +7,7 @@
 // service tiny-axe key site`); nothing here prints it or any token. Two
 // clients play the two ends with the session ta-remote-token hands out: the
 // "machine" joins the owner's channel and shows as online; the "browser" sends
-// a message, sees it picked up, gets a streamed piece, then the reply. Then the
+// a message, sees it picked up, gets a draft snapshot, then the reply. Then the
 // refusals: no session, someone else's channel, no key.
 //
 // Then approvals (0011, tiny-axe P3): the machine opens one with its key,
@@ -93,7 +93,7 @@ const machineChannel = machine.channel(topic, { config: { private: true, presenc
 machineChannel.on("broadcast", { event: "message" }, ({ payload }) => machineSeen.push(payload));
 
 const browserChannel = browser.channel(topic, { config: { private: true, presence: { key: "browser" } } });
-for (const event of ["message", "delta", "approval"]) {
+for (const event of ["message", "draft", "approval"]) {
   browserChannel.on("broadcast", { event }, ({ payload }) => browserSeen.push({ event, payload }));
 }
 let online = false;
@@ -121,8 +121,8 @@ check("marked working", working.status === 200 && working.body.reply === null);
 check("taken only once (a second tiny-axe gets 409)", (await call("ta-remote-reply", token, { id, status: "working" })).status === 409);
 check("the browser sees it's working", !!(await until(() => browserSeen.find((s) => s.event === "message" && s.payload.id === id && s.payload.status === "working"))));
 
-await machineChannel.send({ type: "broadcast", event: "delta", payload: { reply_to: id, text: "po" } });
-check("the browser gets a streamed piece", !!(await until(() => browserSeen.find((s) => s.event === "delta" && s.payload.reply_to === id))));
+await machineChannel.send({ type: "broadcast", event: "draft", payload: { reply_to: id, text: "po" } });
+check("the browser gets a draft snapshot", !!(await until(() => browserSeen.find((s) => s.event === "draft" && s.payload.reply_to === id))));
 
 const answered = await call("ta-remote-reply", token, { id, status: "answered", body: "remote-check: pong" });
 check("ta-remote-reply keeps the reply", answered.status === 200 && answered.body.reply?.reply_to === id, `HTTP ${answered.status}`);

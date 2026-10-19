@@ -14,7 +14,7 @@ export class Refused extends Error {}
 /** Stores a chat if it changed. Only what the page shows is kept: never
  * `context`, and every text redacted again. */
 export async function pushChat(store: Store, owner: string, doc: unknown): Promise<{ id: string; written: boolean }> {
-  if (JSON.stringify(doc ?? null).length > MAX_CHAT_BYTES) throw new Refused(`a chat is at most ${MAX_CHAT_BYTES} bytes`);
+  if (new TextEncoder().encode(JSON.stringify(doc ?? null)).byteLength > MAX_CHAT_BYTES) throw new Refused(`a chat is at most ${MAX_CHAT_BYTES} bytes`);
   const chat = parseChat(doc);
   if (!chat) throw new Refused("that isn't a tiny-axe chat (version 1, with id, session, title, started, updated, folder, entries)");
 

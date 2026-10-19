@@ -38,12 +38,16 @@ serve(async (req) => {
       .eq("owner_id", owner)
       .order("created_at", { ascending: false })
       .limit(50);
-    // Before 0011 is applied there's no table: the page just shows no cards.
-    if (!approvalsError) approvals = (rows ?? []).reverse();
+    if (approvalsError) throw new Error(approvalsError.message);
+    approvals = (rows ?? []).reverse();
   }
 
-  const { data: device } = await admin.from("buster_ta_remote_devices")
-    .select("last_seen, online").eq("owner_id", owner).eq("agent", agent).maybeSingle();
-  const online = device?.online === true && Date.parse(device.last_seen) > Date.now() - 30_000;
+  let online = false;
+  if (agent === "busterclaw") {
+    const { data: device, error: deviceError } = await admin.from("buster_ta_remote_devices")
+      .select("last_seen, online").eq("owner_id", owner).eq("agent", agent).maybeSingle();
+    if (deviceError) throw new Error(deviceError.message);
+    online = device?.online === true && Date.parse(device.last_seen) > Date.now() - 30_000;
+  }
   return json(req, 200, { agent, online, messages: (data ?? []).reverse(), approvals });
 });

@@ -4,11 +4,11 @@
 // API (/api/signup) and scripts/tinyaxe-key.ts.
 
 /** 2–32 letters, digits, `.`, `_` or `-`, starting with a letter or digit; lowercase. */
-export const USERNAME = /^[a-z0-9][a-z0-9._-]{1,31}$/;
-export const DOMAIN = "users.tiny-axe.invalid";
-export const MIN_PASSWORD = 12;
+const USERNAME = /^[a-z0-9][a-z0-9._-]{1,31}$/;
+const DOMAIN = "users.tiny-axe.invalid";
+const MIN_PASSWORD = 12;
 /** Supabase Auth (bcrypt) uses at most 72 bytes of a password. */
-export const MAX_PASSWORD = 72;
+const MAX_PASSWORD = 72;
 
 export const normalize = (username: string) => username.trim().toLowerCase();
 

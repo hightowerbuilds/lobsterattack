@@ -24,7 +24,7 @@ export function createVisualViewer() {
   onCleanup(close);
   const Viewer = () => (
     <dialog
-      ref={dialog}
+      ref={el => { dialog = el; }}
       class="visual-viewer"
       aria-label={image()?.title ?? "Full image"}
       onClose={() => { setImage(null); if (trigger?.isConnected) trigger.focus({ preventScroll: true }); }}

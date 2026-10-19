@@ -1,0 +1,33 @@
+/* The phone menu: the ☰ in the top bar opens it over the whole page. */
+.menu-button { display: none; padding: 2px 10px; font-size: 18px; line-height: 1.4; }
+#menu {
+  box-sizing: border-box; width: 100%; max-width: none; height: 100dvh; max-height: none;
+  margin: 0; padding: 0 16px 24px; border: 0; background: var(--page-background, var(--bg)); color: var(--text);
+}
+#menu::backdrop { background: color-mix(in srgb, var(--bg) 60%, transparent); }
+.menu-head { display: flex; align-items: center; justify-content: space-between; height: 44px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
+.menu-title { font-weight: 650; font-size: 16px; }
+.menu-title span { color: var(--muted); font-weight: 400; }
+.menu-close { padding: 2px 10px; font-size: 16px; }
+.menu-agents, .menu-views { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.menu-agents a { padding: 10px 12px; border-radius: var(--radius); color: var(--text); font-size: 18px; font-weight: 600; }
+.menu-views a, .menu-views button { padding: 10px 12px; border: 0; border-radius: var(--radius); background: none; color: var(--muted); font-size: 16px; text-align: left; }
+.menu-agents a:hover, .menu-views a:hover, .menu-views button:hover { background: var(--raised); text-decoration: none; }
+.menu-agents a[aria-current="page"], .menu-views a[aria-current="page"] { background: var(--raised); color: var(--text); }
+.menu-tools { display: flex; gap: 8px; padding-top: 16px; }
+.menu-tools button { padding: 6px 14px; }
+
+/* Phones */
+
+@media (max-width: 760px) {
+  main { padding: 20px 16px 48px; }
+  .topbar { gap: 12px; padding: 0 12px; }
+  .topbar .agents, .topbar .brand-tools { display: none; }
+  .menu-button { display: inline-block; margin-left: auto; }
+  /* The views are in the menu; the page is the view. */
+  .home .tabs { display: none; }
+  main.fixed { height: calc(100dvh - 44px); padding: 12px 12px 8px; }
+  .home .chat-tab .lede { display: none; }
+  .chat-tab .chat-box { min-height: 0; }
+  .chat-row .label { white-space: normal; overflow-wrap: anywhere; }
+}

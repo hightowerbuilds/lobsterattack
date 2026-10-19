@@ -2,16 +2,13 @@
 // pattern head, painted tiny-axe green, flaring from a narrow waist to two
 // curved bits ground bright; a straight hickory handle, oval, with its grain,
 // swelling to a knob, its end and wedge showing through the top of the eye.
-// Modelled as a signed-distance field, ray-cast cell by cell into ASCII and
-// spun about the handle (played by ascii.tsx). The bright steel reflects a
+// Modelled as a signed-distance field, ray-cast cell by cell into ASCII for a stationary send-button mark. The bright steel reflects a
 // studio that stays put while the axe turns, so its shine slides over it.
 
 import { AsciiArt, runs, type Frame } from "./ascii.tsx";
 
 const COLS = 64;
 const ROWS = 64;
-const FRAMES = 72;
-const FRAME_MS = 60;
 const CELL_H = 0.29;
 /** A character cell is about this much taller than it is wide. */
 const CELL_W = CELL_H / 1.72;
@@ -102,7 +99,7 @@ const MIDDLE = -5.75;
 
 type Rot = { spin: number; lean: number };
 
-const rotation = (frame: number): Rot => ({ spin: (frame * 2 * Math.PI) / FRAMES, lean: 0.1 });
+const rotation: Rot = { spin: 0, lean: 0.1 };
 
 // From the screen's space into the axe's: lean back to look down on it a
 // little, then turn it about the handle.
@@ -202,14 +199,14 @@ function cell(col: number, row: number, rot: Rot): [string, string | null] {
   return [RAMP[DENSE + Math.round(light * (RAMP.length - 1 - DENSE))], colour];
 }
 
-export function frame(index: number): Frame {
-  const rot = rotation(index);
+function frame(): Frame {
+  const rot = rotation;
   const rows: Frame = [];
   for (let row = 0; row < ROWS; row++) rows.push(runs(Array.from({ length: COLS }, (_, col) => cell(col, row, rot))));
   return rows;
 }
 
 /** tiny-axe's double-bit axe; stationary when used as a button mark. */
-export function Axe(props: { still?: boolean }) {
-  return <AsciiArt make={frame} count={FRAMES} frameMs={FRAME_MS} still={props.still} label="tiny-axe: a double-bit axe" class="axe" />;
+export function Axe() {
+  return <AsciiArt make={frame} label="tiny-axe: a double-bit axe" class="axe" />;
 }

@@ -4,7 +4,7 @@
 // tapering all the way. The cover is engraved silver: a neck, a domed lid, a
 // round body, an engraved band and a skirt cut into six scallops, its seams
 // trimmed in gold rope. Modelled as a signed-distance field, ray-cast cell by
-// cell into ASCII and spun about the arm (played by ascii.tsx). The metal
+// cell into ASCII for a stationary send-button mark. The metal
 // reflects a studio that stays put while the hook turns, so the shine slides
 // over it as it does over polished steel.
 
@@ -12,8 +12,6 @@ import { AsciiArt, runs, type Frame } from "./ascii.tsx";
 
 const COLS = 54;
 const ROWS = 64;
-const FRAMES = 72;
-const FRAME_MS = 60;
 const CELL_H = 0.2925;
 /** A character cell is about this much taller than it is wide. */
 const CELL_W = CELL_H / 1.72;
@@ -183,7 +181,7 @@ const MIDDLE = -1.05;
 
 type Rot = { spin: number; lean: number };
 
-const rotation = (frame: number): Rot => ({ spin: (frame * 2 * Math.PI) / FRAMES, lean: 0.2 });
+const rotation: Rot = { spin: 0, lean: 0.2 };
 
 // From the screen's space into the hook's: lean back to look down on it a
 // little, then turn it about the arm.
@@ -277,14 +275,14 @@ function cell(col: number, row: number, rot: Rot): [string, string | null] {
   return [RAMP[DENSE + Math.round(light * (RAMP.length - 1 - DENSE))], colour];
 }
 
-export function frame(index: number): Frame {
-  const rot = rotation(index);
+function frame(): Frame {
+  const rot = rotation;
   const rows: Frame = [];
   for (let row = 0; row < ROWS; row++) rows.push(runs(Array.from({ length: COLS }, (_, col) => cell(col, row, rot))));
   return rows;
 }
 
 /** Captain Hook's hook; stationary when used as a button mark. */
-export function Hook(props: { still?: boolean }) {
-  return <AsciiArt make={frame} count={FRAMES} frameMs={FRAME_MS} still={props.still} label="BusterClaw: Captain Hook's hook" class="hook" />;
+export function Hook() {
+  return <AsciiArt make={frame} label="BusterClaw: Captain Hook's hook" class="hook" />;
 }

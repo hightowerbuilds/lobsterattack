@@ -58,7 +58,9 @@ export function accountsApi(deps: AccountDeps) {
       const key = await newKey(store, made.id, label);
       return c.json({ username, key }, 201);
     } catch (error) {
-      await deps.accounts().remove(made.id).catch(() => {});
+      await deps.accounts().remove(made.id).catch((cleanupError: unknown) => {
+        console.error("Account rollback failed:", cleanupError);
+      });
       throw error;
     }
   });
@@ -80,12 +82,13 @@ export function accountsApi(deps: AccountDeps) {
 }
 
 async function credentials(c: Context) {
-  let raw: any;
+  let parsed: unknown;
   try {
-    raw = await c.req.json();
+    parsed = await c.req.json();
   } catch {
     return { error: "Send JSON: {username, password}." };
   }
+  const raw = parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
   if (typeof raw?.username !== "string" || typeof raw?.password !== "string") {
     return { error: "Send JSON: {username, password}." };
   }
@@ -94,9 +97,9 @@ async function credentials(c: Context) {
   if (!email) return { error: "A username is 2–32 letters, digits, \".\", \"_\" or \"-\", starting with a letter or digit." };
   const label =
     typeof raw.label === "string" && raw.label.trim() !== ""
-      ? raw.label.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, MAX_LABEL)
+      ? Array.from(raw.label, char => char.charCodeAt(0) < 32 ? " " : char).join("").trim().slice(0, MAX_LABEL)
       : "tiny-axe";
-  return { username, email, password: raw.password as string, label };
+  return { username, email, password: raw.password, label };
 }
 
 async function newKey(store: Store, owner: string, label: string): Promise<string> {

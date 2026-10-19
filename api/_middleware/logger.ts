@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import type { ApiEnv } from "../types.js";
+import type { ApiEnv } from "../_types.js";
 
 /**
  * Request logging middleware.

@@ -32,22 +32,17 @@ export function sessionStart(session: string): string | null {
 
 /** A chat document, or null if it isn't one the site reads. Entries of a
  * kind it doesn't know are left out. */
-export function parseChat(doc: any): Chat | null {
-  if (typeof doc !== "object" || doc === null || doc.version !== VERSION) return null;
-  if (typeof doc.id !== "string" || !CHAT_ID.test(doc.id)) return null;
-  const strings = ["session", "title", "started", "updated", "folder"].every((k) => typeof doc[k] === "string");
-  if (!strings || !Array.isArray(doc.entries)) return null;
-
-  const entries: ChatEntry[] = doc.entries
-    .filter((e: any) => typeof e === "object" && e !== null && KINDS.has(e.kind) && typeof e.text === "string")
-    .map((e: ChatEntry) => ({ kind: e.kind, text: e.text }));
-  return {
-    id: doc.id,
-    session: doc.session,
-    title: doc.title,
-    started: doc.started,
-    updated: doc.updated,
-    folder: doc.folder,
-    entries,
-  };
+export function parseChat(value: unknown): Chat | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const doc = value as Record<string, unknown>;
+  const { id, session, title, started, updated, folder, entries } = doc;
+  if (doc.version !== VERSION || typeof id !== "string" || !CHAT_ID.test(id)) return null;
+  if (typeof session !== "string" || typeof title !== "string" || typeof started !== "string" ||
+      typeof updated !== "string" || typeof folder !== "string" || !Array.isArray(entries)) return null;
+  const kept: ChatEntry[] = [];
+  for (const entry of entries) {
+    if (!entry || typeof entry !== "object") continue;
+    if (KINDS.has(entry.kind) && typeof entry.text === "string") kept.push({ kind: entry.kind, text: entry.text });
+  }
+  return { id, session, title, started, updated, folder, entries: kept };
 }

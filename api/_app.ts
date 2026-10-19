@@ -8,7 +8,7 @@ import { accountsApi } from "./_routes/accounts.js";
 import { supabaseAccounts } from "./_lib/supabaseAccounts.js";
 import { supabase } from "./_lib/supabase.js";
 import { supabaseStore, type Store } from "./_lib/store.js";
-import type { ApiEnv } from "./types.js";
+import type { ApiEnv } from "./_types.js";
 
 // All routes live under /api so the paths line up in production: Vercel rewrites
 // /api/(.*) to this function but preserves the original URL, and locally the Bun

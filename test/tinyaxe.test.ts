@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { Hono } from "hono";
-import { memoryStore } from "../api/_lib/store.js";
+import { memoryStore } from "./support/memory-store.ts";
 import { sha256 } from "../api/_lib/tinyaxe.js";
 import { tinyAxeApi } from "../api/_routes/tinyaxe.js";
 
@@ -261,4 +261,11 @@ describe("the site's reads", () => {
     const later = (await view(`/changes?since=${encodeURIComponent(before.chats)}`)).body;
     expect(later.changed).toEqual({ chats: ["20261011-153012-a1b2"] });
   });
+});
+
+
+test("chat payload limit counts UTF-8 bytes, not just characters", async () => {
+  const { pushChat, MAX_CHAT_BYTES } = await import("../api/_lib/tinyaxe.ts");
+  const oversized = { text: "é".repeat(MAX_CHAT_BYTES / 2) };
+  await expect(pushChat(memoryStore(), "owner", oversized)).rejects.toThrow("bytes");
 });

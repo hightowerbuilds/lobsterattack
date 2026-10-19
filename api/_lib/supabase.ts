@@ -5,8 +5,7 @@ let instance: SupabaseClient | null = null;
 /**
  * Build the service-role client on first use. Validating env lazily (rather than
  * at module load) means importing this module never crashes the serverless
- * function at cold start — routes that don't need the service key (e.g. /health,
- * /posts) keep working even if SUPABASE_SERVICE_ROLE_KEY is absent.
+ * function at cold start — routes that don't need the service key (e.g. /health) keep working even if SUPABASE_SERVICE_ROLE_KEY is absent.
  */
 function build(): SupabaseClient {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;

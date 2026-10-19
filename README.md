@@ -4,31 +4,30 @@ One account reaches the agents on your two computers: Tiny Axe at `/tiny-axe`
 and BusterClaw at `/busterclaw`. Each has its own remote conversations and
 online status. See [pairing and deployment](docs/busterclaw.md).
 
-The hosted home of [tiny-axe](https://github.com/hightowerbuilds/tiny-axe):
-every chat with it, searchable, and a line to it wherever it's running, for the
-people its owner lets in. The plan is tiny-axe's `docs/plan-lobsterattack.md`.
+The site connects to the agents running on your computers and keeps Tiny Axe's
+saved chat history searchable. Sign in with a username and password; Supabase
+Auth represents a username as `<username>@users.tiny-axe.invalid`.
 
-- **Site** (`src/`): SolidJS. Sign in with a username and password (Supabase
-  Auth underneath: a username stands for `<username>@users.tiny-axe.invalid`);
-  nothing shows without it. The home page has two tabs: **History**, the chat
-  list with its search (also at `/chats`), and **Chat**, which talks to your
-  tiny-axe over Supabase Realtime. One chat is at `/chats/<id>`. Polls
-  `/api/changes` to keep up.
-- **API** (`api/`): Hono on Vercel Edge.
-  - `/api/mcp`: an MCP server (streamable HTTP, plain JSON) for tiny-axe,
-    with its key (`Authorization: Bearer …`). Read tools for the model
-    (`chat_search`, `chat_read`, `site_link`); `chat_push` and `signin_link`
-    for tiny-axe's own code.
-  - `/api/me`, `chats`, `chat`, `changes`: the site's reads, for a signed-in
-    viewer who's in `buster_ta_members`.
-  - `/api/signup`, `/api/device`: accounts, made from tiny-axe.
-- **Remote chat** (`supabase/functions/ta-remote-*`): edge functions that keep
-  the Chat tab's messages in `buster_ta_remote`.
-- **Data**: Supabase, the `buster_ta_*` tables (`supabase/migrations/0006`
-  onwards; the old graph's tables are left in place, unused). RLS on with no policies, so
-  only the API (service role) reaches them. The project is shared with other
-  apps: new tables take the `buster_` prefix, and `buster_posts`/
-  `buster_profiles` (the old posts feed) are left alone.
+- **Website** (`src/`): `app.tsx` handles startup and authentication;
+  `navigation.ts` owns routes; `layout.tsx` owns the header and phone menu.
+  `history/` contains saved-chat pages and queries. `remote/` separates the
+  live session, connection, messages, transport, and approval cards. `mobile/`
+  owns dictation, read-aloud, and expanded chat. Styles are grouped in `styles/`.
+- **API** (`api/`): Hono on Vercel Edge, with one entry point, `index.ts`.
+  Routes authenticate callers and handle HTTP/MCP; `_lib/` holds storage,
+  account operations, MCP tools, and shared chat rendering.
+  `/api/mcp` serves agent-key clients. `/api/me`, `/api/chats`, `/api/chat`,
+  and `/api/changes` serve authenticated viewers in `buster_ta_members`.
+  `/api/signup`, `/api/device`, and `/api/username` support account setup.
+- **Remote chat** (`supabase/functions/ta-remote-*`): separately deployed edge
+  functions and Realtime deliver conversations for both agents. A hidden tab
+  stops history polling and refreshes on return; requests never overlap.
+- **Data**: Supabase's `buster_ta_*` tables, behind service-role API calls.
+  The project is shared with other apps. Applied migrations and older tables
+  are historical records, not unused source files to delete or replay.
+- **Tests** (`test/`): in-memory API and edge-handler boundaries, rendering,
+  polling and wake-lock regressions. Test storage lives in `test/support/`,
+  outside production API code.
 
 ## Running it
 
@@ -37,7 +36,10 @@ bun install
 cp .env.example .env          # fill in the four values
 bun run api:dev               # API on :3001
 bun run dev                   # site on :5173 (proxies /api)
-bun run test                  # API tests, in memory
+bun run check                 # frontend + API types, unused code, lint (warnings fail)
+bun run check:edge            # all eight Supabase handlers (requires Deno)
+bun run test                  # regressions, with in-memory API boundaries
+bun run build                 # production frontend
 ```
 
 ## iPhone chat controls
@@ -96,3 +98,38 @@ bun run tinyaxe-key let-in sam luke
 bun run tinyaxe-key list luke
 bun run tinyaxe-key revoke <key id>
 ```
+
+## Review and maintenance
+
+The October 2026 cleanup removed the unused batching constant, unused public
+exports, the static marks' obsolete animation options, a nonexistent seed-file
+reference, redundant square-corner CSS, and the legacy missing-approvals-table
+fallback. The type-only API module is now `_types.ts`, so Vercel does not deploy
+it as a function. The manual remote diagnostic now uses the current `draft`
+event. No source modules were unreachable from the app, API, functions,
+scripts, or tests after the split.
+
+History snapshots preserve newer broadcasts, including answered approvals.
+New-chat revisions invalidate delayed sends; typing a new draft while sending
+keeps that draft. Account changes dispose cached history and cancel its HTTP
+requests. Static ASCII marks cache their frame, animation runs only while its
+page is visible, and approval expiration uses a one-shot timer. Database and
+account-cleanup failures are reported instead of being treated as empty data.
+
+Before publishing, run the checks above and exercise both agent pages on desktop
+and mobile: send/reconnect, new chat during a delayed send, approvals and expiry,
+images/cards/history, sign-out/sign-in, dictation, read-aloud, and screen wake.
+Use mock accounts and replies for browser checks. `scripts/remote-check.ts` is a
+separate opt-in **live** diagnostic: it creates messages and an approval on the
+configured Tiny Axe account, so it is not part of the automatic suite.
+
+History search still reads each owner's saved documents and searches in memory.
+If histories grow large, the next improvement is indexed database search with
+pagination; that requires its own data migration and client contract. Rate
+limits remain per-instance speed bumps; a distributed limiter is a separate
+infrastructure change. Tiny Axe's omitted-agent default and existing protocol
+names remain necessary compatibility paths.
+
+Website changes deploy from `main`. Supabase function changes require an
+explicit function deployment too; pushing the website alone does not publish
+them. This review changes no SQL migrations or stored data.

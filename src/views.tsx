@@ -2,9 +2,9 @@
 // BusterClaw has Chat. On phones the tabs are in the menu.
 
 import { For, Match, Switch } from "solid-js";
-import { ChatsPage } from "./chats.tsx";
+import { ChatsPage } from "./history/list.tsx";
 import { RemoteChat } from "./remote.tsx";
-import { agent, route } from "./store.ts";
+import { agent, route } from "./navigation.ts";
 
 export const AGENT_NAMES = { "tiny-axe": "TinyAxe", busterclaw: "BusterClaw" } as const;
 

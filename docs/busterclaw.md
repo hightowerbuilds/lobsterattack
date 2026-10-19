@@ -62,9 +62,9 @@ agent work. Uncertain claims require checking the computer before resending.
 
 ```sh
 bun run test
-bunx tsc --noEmit
+bun run check
 bun run build
-deno check --node-modules-dir=auto supabase/functions/ta-remote-{token,pending,history,send,reply,heartbeat}/index.ts
+bun run check:edge
 ```
 
 `remote-agents.test.ts` runs the actual edge handlers against an in-memory

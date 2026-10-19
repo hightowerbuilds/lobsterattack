@@ -25,10 +25,10 @@ export const configured = client !== null;
 export const supabase = client;
 
 /** The signed-in session; undefined until it's known. */
-export const [session, setSession] = createSignal<Session | null | undefined>(client ? undefined : null);
+const [session, setSession] = createSignal<Session | null | undefined>(client ? undefined : null);
 
 /** Why a sign-in link from tiny-axe didn't work, or null. */
-export const [linkProblem, setLinkProblem] = createSignal<string | null>(null);
+const [linkProblem, setLinkProblem] = createSignal<string | null>(null);
 
 // tiny-axe opens the site in the user's browser as `…#signin=<token>`: a
 // one-time token (Supabase's magic-link token, made for the account of
@@ -39,7 +39,8 @@ function takeSigninToken(): string | null {
   const found = /(?:^#|&)signin=([^&]+)/.exec(location.hash);
   if (!found) return null;
   history.replaceState(null, "", location.pathname + location.search);
-  return decodeURIComponent(found[1]);
+  try { return decodeURIComponent(found[1]); }
+  catch { setLinkProblem("That sign-in link is malformed. Sign in below."); return null; }
 }
 
 if (client) {
@@ -54,7 +55,10 @@ if (client) {
       })
     : client.auth.getSession().then(({ data }) => data.session);
 
-  first.then((s) => {
+  first.catch(() => {
+    setLinkProblem("Couldn’t restore your session. Sign in again.");
+    return null;
+  }).then((s) => {
     ready = true;
     setSession(s);
   });
@@ -85,3 +89,5 @@ export async function accessToken(): Promise<string | null> {
   const { data } = await client.auth.getSession();
   return data.session?.access_token ?? null;
 }
+
+export { session, linkProblem };

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { Hono } from "hono";
 import type { Accounts } from "../api/_lib/accounts.js";
-import { memoryStore } from "../api/_lib/store.js";
+import { memoryStore } from "./support/memory-store.ts";
 import { accountsApi } from "../api/_routes/accounts.js";
 import { tinyAxeApi } from "../api/_routes/tinyaxe.js";
 

@@ -104,11 +104,12 @@ export async function ownerForSession(token: string): Promise<string | null> {
   if (!token) return null;
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data.user) return null;
-  const { data: account } = await admin
+  const { data: account, error: accountError } = await admin
     .from("buster_ta_accounts")
     .select("user_id")
     .eq("user_id", data.user.id)
     .maybeSingle();
+  if (accountError) throw new Error(accountError.message);
   return account ? data.user.id : null;
 }
 

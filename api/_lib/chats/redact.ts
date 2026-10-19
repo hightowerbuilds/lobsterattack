@@ -9,7 +9,7 @@ const CARD = /(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)/g;
 const TOKEN = /(?<![A-Za-z0-9_-])(?=[A-Za-z0-9_-]*\d)(?=[A-Za-z0-9_-]*[A-Za-z])[A-Za-z0-9_-]{24,}(?![A-Za-z0-9_-])/g;
 
 /** Card numbers removed (TinyAxe.Tools.Redact.text/1). */
-export function cards(text: string): string {
+function cards(text: string): string {
   return text.replace(CARD, (match) => (luhn(match.replace(/\D/g, "")) ? "[card number removed]" : match));
 }
 

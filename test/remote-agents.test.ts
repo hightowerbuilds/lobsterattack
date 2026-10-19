@@ -6,13 +6,17 @@ import { remoteAgent, remoteTopic } from "../supabase/functions/_shared/agents.t
 type Row = Record<string, any>;
 type Handler = (request: Request) => Promise<Response>;
 let rows: Row[] = [];
+let databaseFailure: string | null = null;
+let queried: string[] = [];
 let rpcCalls: { name: string; params: Row }[] = [];
 let handler: Handler;
 const handlers: Record<string, Handler> = {};
 
 function query(table: string) {
+  queried.push(table);
+  const result = (data: unknown) => ({ data, error: databaseFailure === table ? { message: "database unavailable" } : null });
   let matches = table === "buster_ta_remote" ? [...rows] : [];
-  const builder: any = {
+  const builder: any = Object.assign(Promise.resolve().then(() => result(matches)), {
     select() { return builder; },
     eq(key: string, value: unknown) { matches = matches.filter(row => row[key] === value); return builder; },
     in(key: string, values: unknown[]) { matches = matches.filter(row => values.includes(row[key])); return builder; },
@@ -20,10 +24,9 @@ function query(table: string) {
     order() { return builder; },
     limit(count: number) { matches = matches.slice(0, count); return builder; },
     insert(row: Row) { const saved = { id: crypto.randomUUID(), ...row }; rows.push(saved); matches = [saved]; return builder; },
-    single() { return Promise.resolve({ data: matches[0], error: null }); },
-    maybeSingle() { return Promise.resolve({ data: matches[0] ?? null, error: null }); },
-    then(resolve: (value: unknown) => void) { return Promise.resolve({ data: matches, error: null }).then(resolve); },
-  };
+    single() { return Promise.resolve(result(matches[0])); },
+    maybeSingle() { return Promise.resolve(result(matches[0] ?? null)); },
+  });
   return builder;
 }
 
@@ -35,6 +38,7 @@ mock.module("../supabase/functions/_shared/remote.ts", () => ({
   ownerForKey: async (token: string) => token === "device-a" ? "owner-a" : null,
   json: (_request: Request, status: number, body: unknown) => Response.json(body, { status }),
   COLUMNS: "*", APPROVAL_COLUMNS: "*", MAX_BODY: 20_000,
+  APPROVAL_KINDS: new Set(["tool"]), OUTCOMES: new Set(["refused"]),
   CONVERSATION: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
   authClient: () => ({ auth: { verifyOtp: async () => ({ data: { session: { access_token: "session", expires_at: 2_000_000_000 } } }) } }),
   admin: {
@@ -57,11 +61,14 @@ for (const name of ["token", "pending", "history", "send", "reply", "heartbeat"]
   handlers[name] = handler!;
 }
 
+await import("../supabase/functions/ta-remote-approval/index.ts");
+const approvalHandler = handler!;
+
 const call = (name: string, body: Row = {}, token = "owner-a") => handlers[name](new Request(`https://example.invalid/${name}`, {
   method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(body),
 }));
 
-beforeEach(() => { rows = []; rpcCalls = []; });
+beforeEach(() => { rows = []; rpcCalls = []; databaseFailure = null; queried = []; });
 
 test("legacy clients keep Tiny Axe's topic, and BusterClaw has a separate topic", async () => {
   expect(remoteAgent(undefined)).toBe("tiny-axe");
@@ -118,4 +125,30 @@ test("every endpoint refuses invalid credentials and unknown agents before readi
   }
   expect(rows).toHaveLength(0);
   expect(rpcCalls).toHaveLength(0);
+});
+
+
+test("history reports database failures instead of hiding approvals or offline state", async () => {
+  databaseFailure = "buster_ta_remote_approvals";
+  await expect(call("history")).rejects.toThrow("database unavailable");
+  databaseFailure = "buster_ta_remote_devices";
+  await expect(call("history", { agent: "busterclaw" })).rejects.toThrow("database unavailable");
+});
+
+test("Tiny Axe uses presence without a redundant device-table query", async () => {
+  expect((await call("history")).status).toBe(200);
+  expect(queried).not.toContain("buster_ta_remote_devices");
+});
+
+
+test("Tiny Axe approvals cannot attach to BusterClaw messages", async () => {
+  const tiny = { id: "tiny-message", owner_id: "owner-a", agent: "tiny-axe", role: "user" };
+  const buster = { ...tiny, id: "buster-message", agent: "busterclaw" };
+  rows.push(tiny, buster);
+  const open = (message_id: string) => approvalHandler(new Request("https://example.invalid/approval", {
+    method: "POST", headers: { Authorization: "Bearer device-a", "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "open", kind: "tool", message_id, nonce: "preview-nonce-123456", salt: "preview-salt-123456", iterations: 100000, expires_in: 60, body: { title: "Review a tool" } }),
+  }));
+  expect((await open(buster.id)).status).toBe(404);
+  expect((await open(tiny.id)).status).toBe(200);
 });

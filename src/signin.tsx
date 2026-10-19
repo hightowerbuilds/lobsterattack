@@ -13,8 +13,13 @@ export function SignIn() {
     event.preventDefault();
     const form = new FormData(event.currentTarget as HTMLFormElement);
     setBusy(true);
-    setError(await signIn(String(form.get("username") ?? ""), String(form.get("password") ?? "")));
-    setBusy(false);
+    try {
+      setError(await signIn(String(form.get("username") ?? ""), String(form.get("password") ?? "")));
+    } catch {
+      setError("Couldn’t connect. Check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (

@@ -55,6 +55,7 @@ serve(async (req) => {
         .eq("id", input.message_id)
         .eq("owner_id", owner)
         .eq("role", "user")
+        .eq("agent", "tiny-axe")
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (!message) return json(req, 404, { error: "No such message." });

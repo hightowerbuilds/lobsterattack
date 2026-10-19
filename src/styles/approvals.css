@@ -1,0 +1,18 @@
+/* Approvals on the Chat tab (tiny-axe P3) */
+.message.approval { border-color: color-mix(in srgb, var(--accent) 55%, transparent); padding-bottom: 10px; }
+.message.approval.purchase { border-color: color-mix(in srgb, var(--blocked) 60%, transparent); }
+.message.approval.done { opacity: 0.75; }
+.message.approval .who { color: var(--accent); }
+.message.approval.purchase .who { color: var(--blocked); }
+.approval-title { font-weight: 600; overflow-wrap: anywhere; }
+.approval-line { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.approval-checks { list-style: none; margin: 6px 0; padding: 0; font-size: 13px; }
+.approval-checks .ok { color: var(--validated); }
+.approval-checks .failed { color: var(--blocked); }
+.approval-form { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.approval-form label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 13px; }
+.approval-form input { box-sizing: border-box; width: 100%; max-width: 260px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--text); font: inherit; }
+.approval-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.approval-buttons .approve { border-color: var(--accent); }
+.message.approval.purchase .approval-buttons .approve { border-color: var(--blocked); }
+.message .note.problem-note { color: var(--blocked); }

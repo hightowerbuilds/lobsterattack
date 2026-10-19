@@ -1,3 +1,5 @@
+> Historical launch plan for the retired posts feed. Its endpoints are no longer part of the app. See [the README](../README.md) for the current two-agent website.
+
 # Lobster Attack — Finish the App & Make the First Post
 
 **Audience:** the agent (BusterClaws / Claude) completing this app.

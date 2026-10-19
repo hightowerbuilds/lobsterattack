@@ -2,15 +2,17 @@
   "name": "lobster-attack",
   "version": "0.1.0",
   "private": true,
-  "description": "tiny-axe's hosted home: its chat history and remote chat (Solid + Vite Plus, Hono API).",
+  "description": "Remote conversations with BusterClaw and Tiny Axe, with shared visual replies and saved Tiny Axe history.",
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
-    "check": "vp check",
+    "check": "bun run typecheck && vp lint --deny-warnings",
     "api:dev": "bun run --hot api/_server.ts",
     "api:start": "bun run api/_server.ts",
     "test": "bun test test",
-    "tinyaxe-key": "bun scripts/tinyaxe-key.ts"
+    "tinyaxe-key": "bun scripts/tinyaxe-key.ts",
+    "typecheck": "tsc --noEmit && tsc --project api/tsconfig.json",
+    "check:edge": "deno check --node-modules-dir=none supabase/functions/ta-remote-*/index.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

@@ -1,0 +1,71 @@
+:root {
+  color-scheme: dark;
+  --bg: #1b1c20;
+  --panel: #222328;
+  --raised: #2a2c32;
+  --line: #34363d;
+  --text: #dcddde;
+  --muted: #9a9ca3;
+  --faint: #6c6f77;
+  --accent: #a68af9;
+  --focus: #c4b3ff;
+
+  /* Online, and a failed message */
+  --validated: #57c27c;
+  --blocked: #e5605a;
+
+  --radius: 0;
+  --mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+}
+
+/* The route selects the palette; there is no separate light/dark setting. */
+:root[data-agent="busterclaw"] {
+  color-scheme: dark;
+  --bg: #100b09;
+  --panel: #24130e;
+  --raised: #45251a;
+  --line: #764332;
+  --text: #fff4ed;
+  --muted: #e6c3b3;
+  --faint: #cda998;
+  --accent: #ff9b66;
+  --focus: #ffc19b;
+  --page-background: linear-gradient(135deg, #b83b13 0%, #4b1b10 40%, #070605 85%);
+  --chat-background: linear-gradient(150deg, #602517 0%, #24120d 48%, #0a0807 100%);
+}
+
+:root[data-agent="tiny-axe"] {
+  color-scheme: light;
+  --bg: #fff3df;
+  --panel: #f5eed9;
+  --raised: #d2e2c5;
+  --line: #98ae84;
+  --text: #183c2b;
+  --muted: #36533b;
+  --faint: #3d5337;
+  --accent: #1b653e;
+  --focus: #215d39;
+  --validated: #246b43;
+  --blocked: #a53524;
+  --send-background: #204b34;
+  --send-hover: #2a5c40;
+  --page-background: linear-gradient(135deg, #a6cba0 0%, #d7d4a7 48%, #ffc58e 100%);
+  --chat-background: linear-gradient(145deg, #d2e4c7 0%, #e8e4c6 48%, #ffd2a8 100%);
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--page-background, var(--bg));
+  background-attachment: fixed;
+  color: var(--text);
+  font: 15px/1.6 var(--sans);
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius); }

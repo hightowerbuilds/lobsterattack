@@ -9,10 +9,9 @@
 // part updates on its own.
 
 import { QueryClient, keepPreviousData, useQuery } from "@tanstack/solid-query";
-import { createSignal } from "solid-js";
-import { accessToken, signOut } from "./auth.ts";
+import { accessToken, session, signOut } from "../auth.ts";
 
-export interface ChatRow {
+interface ChatRow {
   id: string;
   title: string;
   started: string;
@@ -42,38 +41,23 @@ export interface ChatDetail {
 
 /** Fetches from the site's API as the signed-in viewer. A session the API
  * no longer accepts signs out, which brings back the sign-in page. */
-export async function get<T>(path: string): Promise<T> {
+async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const owner = session()?.user.id;
   const token = await accessToken();
+  signal?.throwIfAborted();
+  if (session()?.user.id !== owner) throw new DOMException("Account changed", "AbortError");
   if (!token) {
     await signOut();
     throw new Error("Sign in to see this.");
   }
-  const res = await fetch(path, { headers: { Accept: "application/json", Authorization: `Bearer ${token}` } });
+  const res = await fetch(path, { signal, headers: { Accept: "application/json", Authorization: `Bearer ${token}` } });
+  if (session()?.user.id !== owner) throw new DOMException("Account changed", "AbortError");
   if (res.status === 401) {
     await signOut();
     throw new Error("Sign in to see this.");
   }
   if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `The server said ${res.status}.`);
   return res.json() as Promise<T>;
-}
-
-// Remembered in this browser, as a convenience; the page works without.
-
-export function recall<T>(key: string, fallback: T): T {
-  try {
-    const saved = localStorage.getItem(key);
-    return saved === null ? fallback : (JSON.parse(saved) as T);
-  } catch {
-    return fallback;
-  }
-}
-
-export function remember(key: string, value: unknown) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // See recall.
-  }
 }
 
 // The queries
@@ -90,14 +74,14 @@ export const queryClient = new QueryClient({
 export const chatsQuery = (q: () => string) =>
   useQuery(() => ({
     queryKey: ["chats", q()],
-    queryFn: () => get<ChatList>(q() ? `/api/chats?q=${encodeURIComponent(q())}` : "/api/chats"),
+    queryFn: ({ signal }) => get<ChatList>(q() ? `/api/chats?q=${encodeURIComponent(q())}` : "/api/chats", signal),
     placeholderData: keepPreviousData,
   }), () => queryClient);
 
 export const chatQuery = (id: () => string) =>
   useQuery(() => ({
     queryKey: ["chat", id()],
-    queryFn: () => get<ChatDetail>(`/api/chat?id=${encodeURIComponent(id())}`),
+    queryFn: ({ signal }) => get<ChatDetail>(`/api/chat?id=${encodeURIComponent(id())}`, signal),
     placeholderData: keepPreviousData,
   }), () => queryClient);
 
@@ -105,7 +89,7 @@ export const chatQuery = (id: () => string) =>
 // changed since it last asked (not while the tab is hidden), and the API says
 // which chats; those queries are then stale, and whatever's showing them
 // fetches again.
-export const POLL_MS = 15_000;
+const POLL_MS = 15_000;
 
 interface ChangesReply {
   chats: string | null;
@@ -117,8 +101,8 @@ let since: string | null = null;
 export const changesQuery = () =>
   useQuery(() => ({
     queryKey: ["changes"],
-    queryFn: async () => {
-      const reply = await get<ChangesReply>(since ? `/api/changes?since=${encodeURIComponent(since)}` : "/api/changes");
+    queryFn: async ({ signal }) => {
+      const reply = await get<ChangesReply>(since ? `/api/changes?since=${encodeURIComponent(since)}` : "/api/changes", signal);
       const changed = reply.changed;
       if (changed && "all" in changed) chatsChanged([]);
       else if (changed && changed.chats.length > 0) chatsChanged(changed.chats);
@@ -138,62 +122,10 @@ export function forget() {
 }
 
 /** The server says these chats changed (none given: all of them). */
-export function chatsChanged(ids: string[]) {
+function chatsChanged(ids: string[]) {
   queryClient.invalidateQueries({ queryKey: ["chats"] });
   queryClient.invalidateQueries({
     queryKey: ["chat"],
     predicate: (q) => ids.length === 0 || ids.includes(q.queryKey[1] as string),
   });
 }
-
-// Where the page is: an agent's Chat (/tiny-axe, /busterclaw; / is the agent
-// you were on last), tiny-axe's chat history (/chats, where tiny-axe links),
-// or one of its chats (/chats/<id>).
-
-export const AGENTS = ["tiny-axe", "busterclaw"] as const;
-export type Agent = (typeof AGENTS)[number];
-export type View = "chat" | "history";
-
-export type Route = { kind: "home"; agent: Agent; view: View } | { kind: "chat"; id: string };
-
-const here = () => location.pathname + location.search;
-// Not deduplicated: following a link to where the page is still counts.
-export const [href, setHref] = createSignal(here(), { equals: false });
-
-const lastAgent = (): Agent => {
-  const saved = recall<string>("agent", "tiny-axe");
-  return AGENTS.find((a) => a === saved) ?? "tiny-axe";
-};
-
-export function route(): Route {
-  const url = new URL(href(), location.origin);
-  const chat = url.pathname.match(/^\/chats\/(.+)$/);
-  if (chat) return { kind: "chat", id: decodeURIComponent(chat[1]) };
-  if (url.pathname === "/chats") return { kind: "home", agent: "tiny-axe", view: "history" };
-  const agent = AGENTS.find((a) => url.pathname === `/${a}`);
-  return { kind: "home", agent: agent ?? lastAgent(), view: "chat" };
-}
-
-/** The agent the page is about: a chat is tiny-axe's. */
-export const agent = (): Agent => {
-  const r = route();
-  return r.kind === "home" ? r.agent : "tiny-axe";
-};
-
-export const ROUTES = (path: string) =>
-  path === "/" || path === "/chats" || path.startsWith("/chats/") || AGENTS.some((a) => path === `/${a}`);
-
-/** Whether the phone menu is open. */
-export const [menuOpen, setMenuOpen] = createSignal(false);
-
-export function go(to: string) {
-  if (to !== here()) history.pushState(null, "", to);
-  setMenuOpen(false);
-  setHref(here());
-  window.scrollTo(0, 0);
-  document.getElementById("main")?.focus({ preventScroll: true });
-}
-
-window.addEventListener("popstate", () => setHref(here()));
-
-export const chatHref = (id: string) => `/chats/${encodeURIComponent(id)}`;

@@ -1,0 +1,41 @@
+/* Touch-only chat tools also work when a phone rotates into landscape. */
+.mobile-tools { flex: none; border-top: 1px solid var(--line); background: var(--panel); }
+.mobile-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 8px 10px; }
+.mobile-actions button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 52px; padding: 5px 2px; font-size: 11px; line-height: 1.2; transition: background-color 120ms ease; }
+.mobile-actions button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--raised); }
+.mobile-actions button:disabled { opacity: 0.65; }
+.mobile-actions button.is-awake { opacity: 1; color: var(--validated); border-color: color-mix(in srgb, var(--validated) 55%, var(--line)); }
+.mobile-actions svg { width: 19px; height: 19px; }
+.mobile-notice { margin: 0; padding: 0 12px 8px; color: var(--muted); font-size: 12px; line-height: 1.4; max-height: 88px; overflow-y: auto; overflow-wrap: anywhere; }
+.mobile-help { padding: 8px 12px 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.mobile-help summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; text-decoration: underline; text-underline-offset: 3px; }
+.mobile-help p { margin: 4px 0 8px; max-height: 72px; overflow-y: auto; }
+.close-expanded { flex: none; min-width: 44px; min-height: 44px; font-size: 18px; }
+.chat-is-expanded { overflow: hidden; }
+.chat-is-expanded .topbar { visibility: hidden; }
+.chat-box.chat-expanded {
+  position: fixed; z-index: 40; top: var(--chat-top, 0px); left: 0; width: 100%;
+  height: var(--mobile-height, 100dvh); min-height: 0; border: 0; border-radius: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+.chat-expanded .chat-send { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+.chat-expanded .chat-status { padding-top: 4px; padding-bottom: 4px; }
+.chat-box:fullscreen { top: 0; height: 100%; }
+
+@media (hover: none) and (pointer: coarse) {
+  .topbar { height: calc(44px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
+  main.fixed { height: calc(var(--mobile-height, 100dvh) - 44px - env(safe-area-inset-top)); padding: 8px max(12px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+  .home .tabs, .home .chat-tab .lede { display: none; }
+  .chat-tab .chat-box { min-height: 0; }
+  .chat-log { overscroll-behavior-y: contain; }
+  .chat-send textarea, .signin input, .approval-form input { font-size: 16px; }
+  .chat-status .new-chat { min-height: 44px; }
+  #menu { padding-top: env(safe-area-inset-top); padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+}
+
+@media (hover: none) and (pointer: coarse) and (max-height: 500px) {
+  .mobile-actions { padding-top: 4px; padding-bottom: 4px; }
+  .mobile-actions button { flex-direction: row; min-height: 44px; }
+  .chat-status { padding-top: 0; padding-bottom: 0; }
+  .mobile-help { padding-top: 0; }
+}

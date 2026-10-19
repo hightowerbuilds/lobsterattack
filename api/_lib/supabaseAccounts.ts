@@ -28,7 +28,8 @@ export function supabaseAccounts(admin: SupabaseClient): Accounts {
     },
 
     async remove(id) {
-      await admin.auth.admin.deleteUser(id);
+      const { error } = await admin.auth.admin.deleteUser(id);
+      if (error) throw new Error(error.message);
     },
 
     async signinToken(id) {

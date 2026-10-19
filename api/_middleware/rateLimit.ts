@@ -1,6 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import type { ApiEnv } from "../types.js";
+import type { ApiEnv } from "../_types.js";
 
 type BucketEntry = { tokens: number; lastRefill: number };
 
@@ -14,20 +14,17 @@ export function rateLimit(opts: { maxTokens: number; windowMs: number }) {
   const buckets = new Map<string, BucketEntry>();
   const refillRate = opts.maxTokens / opts.windowMs; // tokens per ms
 
-  // Sweep expired entries every 60s to prevent memory leaks.
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, entry] of buckets) {
-      if (now - entry.lastRefill > opts.windowMs * 2) {
-        buckets.delete(key);
-      }
-    }
-  }, 60_000);
-
+  let nextSweep = 0;
   return createMiddleware<ApiEnv>(async (c, next) => {
     const key = c.req.header("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
-
     const now = Date.now();
+    // Sweep only while serving traffic; serverless instances need no timer.
+    if (now >= nextSweep) {
+      for (const [key, entry] of buckets) {
+        if (now - entry.lastRefill > opts.windowMs * 2) buckets.delete(key);
+      }
+      nextSweep = now + 60_000;
+    }
     let bucket = buckets.get(key);
 
     if (!bucket) {
