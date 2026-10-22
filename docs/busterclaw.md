@@ -6,10 +6,14 @@ LobsterAttack account when pairing both apps. Conversations remembered by the
 browser are scoped to account and agent. Tiny Axe's saved-chat history and
 approval cards remain on its own page.
 
-BusterClaw pairs from its desktop **Settings → Credentials → LobsterAttack**.
-It obtains a device key from `/api/device`, stores it encrypted locally, and
+BusterClaw pairs from the **Lobster Attack** link in its desktop sidebar, which
+opens a sign-in modal; the link's dot shows whether the relay is online. It
+obtains a device key from `/api/device`, stores it encrypted locally, and
 exchanges it for a short-lived Supabase session. It polls while open, announces
 availability and draft text, and answers using its configured chat backend.
+A website message can do what the operator can do from BusterClaw's own chat,
+except store, change or delete saved credentials (BusterClaw's
+`LOBSTER_ATTACK_ROADMAP`, decision D1).
 
 ## Deploy in order
 
